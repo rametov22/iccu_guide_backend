@@ -1,0 +1,14 @@
+.martor-preview {
+    color: #333 !important;
+    background-color: #fff !important;
+}
+
+.martor-preview h1,
+.martor-preview h2,
+.martor-preview h3,
+.martor-preview p,
+.martor-preview li,
+.martor-preview ul,
+.martor-preview ol {
+    color: #333 !important;
+}

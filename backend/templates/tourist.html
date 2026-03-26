@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ICCU Tour — Турист</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0d0d0d;
+      color: #fff;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── BG photo ─────────────────────────────────────── */
+    .bg {
+      position: fixed;
+      inset: 0;
+      background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Registan_Samarkand.jpg/1920px-Registan_Samarkand.jpg') center/cover no-repeat;
+      filter: brightness(0.35);
+      z-index: 0;
+    }
+
+    /* ── Screens ──────────────────────────────────────── */
+    .screen {
+      display: none;
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      height: 100vh;
+      align-items: center;
+      justify-content: center;
+    }
+    .screen.active { display: flex; }
+
+    /* ── Card ─────────────────────────────────────────── */
+    .card {
+      background: rgba(18, 18, 18, 0.92);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 32px 28px;
+      width: 420px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .card-wide {
+      width: 680px;
+    }
+    .card-full {
+      width: calc(100vw - 40px);
+      max-width: 800px;
+    }
+
+    /* ── Header row ───────────────────────────────────── */
+    .header-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 24px;
+      position: relative;
+    }
+    .header-row .back-btn {
+      background: rgba(255,255,255,0.08);
+      border: none;
+      color: #fff;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .header-row .back-btn:hover { background: rgba(255,255,255,0.15); }
+    .header-row .logo-wrap {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    .header-row .session-badge {
+      margin-left: auto;
+      font-size: 11px;
+      color: #aaa;
+    }
+
+    /* ── Logo ─────────────────────────────────────────── */
+    .logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #1a1a1a;
+      border: 2px solid #c8a94a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    /* ── Title / subtitle ─────────────────────────────── */
+    .title {
+      text-align: center;
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 24px;
+    }
+
+    /* ── Language selector ────────────────────────────── */
+    .lang-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .lang-btn {
+      flex: 1;
+      padding: 12px 8px;
+      border-radius: 10px;
+      border: 1.5px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+      color: #fff;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .lang-btn.active {
+      border-color: #c8a94a;
+      background: rgba(200,169,74,0.12);
+    }
+    .lang-btn .flag { font-size: 20px; }
+
+    /* ── Accessibility row ────────────────────────────── */
+    .access-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(255,255,255,0.04);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #ccc;
+    }
+    .access-row svg { width: 16px; height: 16px; margin-right: 6px; fill: #888; }
+    .access-left { display: flex; align-items: center; }
+    .toggle-wrap {
+      display: flex;
+      background: rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 2px;
+    }
+    .toggle-btn {
+      padding: 4px 10px;
+      border-radius: 16px;
+      border: none;
+      font-size: 12px;
+      cursor: pointer;
+      background: none;
+      color: #888;
+    }
+    .toggle-btn.active {
+      background: #2a2a2a;
+      color: #fff;
+    }
+
+    /* ── Size selector ────────────────────────────────── */
+    .size-label {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 8px;
+    }
+    .size-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .size-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1.5px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+      color: #ccc;
+      font-size: 13px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .size-btn.active {
+      border-color: #4CAF50;
+      background: rgba(76,175,80,0.1);
+      color: #4CAF50;
+    }
+
+    /* ── Rules grid ───────────────────────────────────── */
+    .rules-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .rule-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 14px;
+    }
+    .rule-card .rule-num {
+      font-size: 11px;
+      color: #c8a94a;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .rule-card .rule-title {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .rule-card .rule-text {
+      font-size: 11px;
+      color: #999;
+      line-height: 1.5;
+    }
+
+    /* ── Guides horizontal scroll ─────────────────────── */
+    .guides-scroll {
+      display: flex;
+      gap: 12px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 20px;
+      scrollbar-width: none;
+    }
+    .guides-scroll::-webkit-scrollbar { display: none; }
+    .guide-card {
+      flex-shrink: 0;
+      width: 140px;
+      background: rgba(255,255,255,0.04);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .guide-card.selected { border-color: #c8a94a; }
+    .guide-card .guide-thumb {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+      background: #222;
+      display: block;
+    }
+    .guide-card .guide-thumb-placeholder {
+      width: 100%;
+      height: 120px;
+      background: #1a1a1a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+    }
+    .guide-card .play-overlay {
+      position: relative;
+    }
+    .guide-card .play-btn {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(200,169,74,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+    }
+    .guide-card .guide-info {
+      padding: 10px;
+    }
+    .guide-card .guide-name {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 3px;
+    }
+    .guide-card .guide-desc {
+      font-size: 11px;
+      color: #888;
+      line-height: 1.4;
+      max-height: 40px;
+      overflow: hidden;
+    }
+    .guide-card.selected .play-btn { background: #c8a94a; }
+    .selected-badge {
+      background: #c8a94a;
+      color: #000;
+      font-size: 11px;
+      font-weight: 700;
+      border-radius: 6px;
+      padding: 2px 8px;
+      margin-top: 4px;
+      text-align: center;
+    }
+
+    /* ── Specialists grid ─────────────────────────────── */
+    .specialists-scroll {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 14px;
+      scrollbar-width: none;
+    }
+    .specialists-scroll::-webkit-scrollbar { display: none; }
+    .spec-card {
+      flex-shrink: 0;
+      width: 110px;
+      background: rgba(255,255,255,0.04);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 12px 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .spec-card.selected { border-color: #c8a94a; }
+    .spec-card .spec-num {
+      font-size: 18px;
+      font-weight: 700;
+      color: #c8a94a;
+    }
+    .spec-card .spec-avatar {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #222;
+    }
+    .spec-card .spec-avatar-placeholder {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #2a2a2a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+    .spec-card .spec-name {
+      font-size: 11px;
+      color: #ccc;
+      text-align: center;
+      line-height: 1.3;
+    }
+    .spec-card .spec-join-btn {
+      width: 100%;
+      padding: 6px;
+      border-radius: 8px;
+      border: none;
+      background: rgba(200,169,74,0.15);
+      color: #c8a94a;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .spec-card .spec-join-btn:hover { background: rgba(200,169,74,0.25); }
+    .spec-card .spec-join-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .spec-error {
+      font-size: 12px;
+      color: #e74c3c;
+      text-align: center;
+      margin-bottom: 10px;
+      min-height: 18px;
+    }
+
+    /* ── Waiting screen ───────────────────────────────── */
+    .waiting-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 16px;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(200,169,74,0.2);
+      border-top-color: #c8a94a;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .waiting-hint {
+      font-size: 12px;
+      color: #666;
+      max-width: 280px;
+      line-height: 1.5;
+    }
+
+    /* ── Tour dashboard ───────────────────────────────── */
+    #screen-dashboard {
+      padding: 0;
+    }
+    .dashboard-wrap {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: #0f0f0f;
+    }
+    .dashboard-top {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Left panel: guide + info */
+    .guide-panel {
+      width: 260px;
+      flex-shrink: 0;
+      border-right: 1px solid rgba(255,255,255,0.07);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .guide-video-wrap {
+      position: relative;
+      background: #111;
+      max-height: 200px;
+      overflow: hidden;
+    }
+    .guide-video-wrap video,
+    .guide-video-wrap .guide-video-placeholder {
+      width: 100%;
+      height: 200px;
+      max-height: 200px;
+      object-fit: cover;
+      display: block;
+    }
+    .guide-video-placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 60px;
+      background: #1a1a1a;
+    }
+    .guide-video-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(transparent, rgba(0,0,0,0.8));
+      padding: 10px 12px 8px;
+    }
+    .guide-video-name {
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .guide-info-body {
+      flex: 1;
+      padding: 14px;
+      overflow-y: auto;
+    }
+    .guide-desc-text {
+      font-size: 12px;
+      color: #999;
+      line-height: 1.6;
+    }
+    .section-info {
+      margin-top: 14px;
+      padding: 10px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 10px;
+    }
+    .section-info .label {
+      font-size: 10px;
+      color: #666;
+      margin-bottom: 3px;
+    }
+    .section-info .value {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* Right panel: exhibits */
+    .exhibits-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .exhibits-header {
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .exhibits-hall-name {
+      font-size: 11px;
+      color: #c8a94a;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .exhibits-section-name {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .exhibits-hint {
+      font-size: 11px;
+      color: #666;
+      margin-top: 3px;
+    }
+    .exhibits-grid {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      align-content: start;
+    }
+    .exhibit-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .exhibit-card:hover { border-color: rgba(200,169,74,0.4); }
+    .exhibit-card.playing { border-color: #c8a94a; }
+    .exhibit-card .ex-thumb {
+      width: 100%;
+      height: 80px;
+      object-fit: cover;
+      background: #1a1a1a;
+      display: block;
+    }
+    .exhibit-card .ex-thumb-placeholder {
+      width: 100%;
+      height: 80px;
+      background: #1a1a1a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    .exhibit-card .ex-body {
+      padding: 8px;
+    }
+    .exhibit-card .ex-title {
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    .exhibit-card .ex-num {
+      font-size: 10px;
+      color: #666;
+      margin-top: 2px;
+    }
+    .no-exhibits {
+      grid-column: 1 / -1;
+      text-align: center;
+      color: #555;
+      padding: 40px 0;
+      font-size: 13px;
+    }
+
+    /* Exhibit video modal */
+    .exhibit-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(0,0,0,0.85);
+      align-items: center;
+      justify-content: center;
+    }
+    .exhibit-modal.open { display: flex; }
+    .exhibit-modal-inner {
+      background: #111;
+      border-radius: 16px;
+      overflow: hidden;
+      width: 560px;
+      max-width: 95vw;
+    }
+    .exhibit-modal video {
+      width: 100%;
+      max-height: 350px;
+      object-fit: contain;
+      background: #000;
+      display: block;
+    }
+    .exhibit-modal-info {
+      padding: 16px;
+    }
+    .exhibit-modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .exhibit-modal-desc {
+      font-size: 12px;
+      color: #999;
+      line-height: 1.5;
+    }
+    .exhibit-modal-close {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: #fff;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    /* Bottom timer bar */
+    .timer-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      background: #0a0a0a;
+      flex-shrink: 0;
+    }
+    .timer-bar .tb-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .timer-bar .tb-label {
+      font-size: 10px;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .timer-bar .tb-value {
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .timer-bar .tb-value.gold { color: #c8a94a; }
+    .timer-progress {
+      flex: 1;
+      margin: 0 16px;
+      height: 4px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .timer-progress-fill {
+      height: 100%;
+      background: #c8a94a;
+      transition: width 1s linear;
+      border-radius: 2px;
+    }
+    .status-badge {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .status-badge.waiting { background: rgba(100,100,100,0.2); color: #888; }
+    .status-badge.in-progress { background: rgba(200,169,74,0.15); color: #c8a94a; }
+    .status-badge.on-break { background: rgba(66,165,245,0.15); color: #42a5f5; }
+    .status-badge.finished { background: rgba(76,175,80,0.15); color: #4caf50; }
+
+    /* ── Rating screen ────────────────────────────────── */
+    .stars-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 20px 0;
+    }
+    .star-btn {
+      background: none;
+      border: none;
+      font-size: 36px;
+      cursor: pointer;
+      color: #333;
+      transition: color 0.1s, transform 0.1s;
+    }
+    .star-btn.active { color: #c8a94a; }
+    .star-btn:hover { transform: scale(1.1); }
+    .rating-textarea {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      color: #fff;
+      padding: 12px;
+      font-size: 13px;
+      resize: none;
+      height: 90px;
+      margin-bottom: 16px;
+    }
+    .rating-textarea::placeholder { color: #555; }
+    .rating-textarea:focus { outline: none; border-color: rgba(200,169,74,0.4); }
+    .btn-row {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-row .btn-skip {
+      flex: 1;
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: none;
+      color: #888;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .btn-row .btn-skip:hover { background: rgba(255,255,255,0.05); }
+
+    /* ── Done screen ──────────────────────────────────── */
+    .done-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 16px;
+    }
+    .done-countdown {
+      font-size: 40px;
+      font-weight: 700;
+      color: #c8a94a;
+      font-variant-numeric: tabular-nums;
+    }
+    .done-hint {
+      font-size: 13px;
+      color: #888;
+      max-width: 280px;
+      line-height: 1.5;
+    }
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e3a1e;
+      border: 1px solid #4caf50;
+      color: #4caf50;
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-size: 13px;
+      z-index: 200;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .toast.show { opacity: 1; }
+
+    /* ── Primary button ───────────────────────────────── */
+    .btn-primary {
+      width: 100%;
+      padding: 16px;
+      border-radius: 12px;
+      border: none;
+      background: #c8a94a;
+      color: #000;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary:hover { background: #d4b55a; }
+    .btn-primary:disabled { background: #555; color: #888; cursor: not-allowed; }
+
+    /* ── Break overlay ────────────────────────────────── */
+    .break-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(0,0,0,0.75);
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .break-overlay.visible { display: flex; }
+    .break-overlay .break-icon { font-size: 48px; }
+    .break-overlay .break-title { font-size: 22px; font-weight: 700; }
+    .break-overlay .break-sub { font-size: 14px; color: #888; }
+
+    /* ── Finished overlay ─────────────────────────────── */
+    .finished-overlay {
+      display: none;
+    }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+    /* ── WS status bar ────────────────────────────────── */
+    .ws-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 300;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(6px);
+      font-size: 11px;
+      color: #888;
+    }
+    .ws-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #555;
+      transition: background 0.3s;
+    }
+    .ws-dot.connected { background: #4caf50; box-shadow: 0 0 6px #4caf50; }
+    .ws-dot.connecting { background: #ff9800; animation: blink 1s infinite; }
+    .ws-dot.error { background: #e74c3c; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ── Total timer ──────────────────────────────────── */
+    .total-timer {
+      font-size: 12px;
+      color: #888;
+      margin-right: auto;
+    }
+    .total-timer span { color: #c8a94a; font-weight: 600; }
+  </style>
+</head>
+<body>
+<div class="bg"></div>
+
+<!-- WS status bar (always visible) -->
+<div class="ws-bar" id="ws-bar">
+  <div class="total-timer" id="ws-total-timer" style="display:none">
+    Тур: <span id="ws-total-time">—</span>
+  </div>
+  <div class="ws-dot" id="ws-dot"></div>
+  <span id="ws-label">Не подключён</span>
+</div>
+
+<!-- ═══════════════ SCREEN 1: WELCOME ═══════════════ -->
+<div class="screen active" id="screen-welcome">
+  <div class="card">
+    <div style="text-align:center;margin-bottom:20px">
+      <div class="logo" style="margin:0 auto 14px">🕌</div>
+      <div class="title">Добро пожаловать в<br>Центр Исламской Цивилизации</div>
+    </div>
+
+    <div style="font-size:12px;color:#888;margin-bottom:8px">Выберите язык</div>
+    <div class="lang-group">
+      <button class="lang-btn" data-lang="uz" onclick="selectLang(this)">
+        <span class="flag">🇺🇿</span>Узбекский
+      </button>
+      <button class="lang-btn" data-lang="ru" onclick="selectLang(this)">
+        <span class="flag">🇷🇺</span>Русский
+      </button>
+      <button class="lang-btn active" data-lang="en" onclick="selectLang(this)">
+        <span class="flag">🇺🇸</span>Английский
+      </button>
+    </div>
+
+    <div class="access-row">
+      <span class="access-left">
+        <svg viewBox="0 0 24 24"><path d="M12 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm-1 5h2v6l3 6h-2l-2-4-2 4H8l3-6V7z"/></svg>
+        Настройки доступности ›
+      </span>
+      <div class="toggle-wrap" id="theme-toggle">
+        <button class="toggle-btn" onclick="setTheme('light',this)">☀</button>
+        <button class="toggle-btn active" onclick="setTheme('dark',this)">🌙</button>
+      </div>
+    </div>
+
+    <div id="access-panel" style="display:none">
+      <div class="size-label">Размер текста</div>
+      <div class="size-group">
+        <button class="size-btn" onclick="setFontSize('small',this)">Маленький</button>
+        <button class="size-btn active" onclick="setFontSize('medium',this)">Средний</button>
+        <button class="size-btn" onclick="setFontSize('large',this)">Большой</button>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="showScreen('rules')">Продолжить</button>
+  </div>
+</div>
+
+<!-- ═══════════════ SCREEN 2: RULES ═══════════════ -->
+<div class="screen" id="screen-rules">
+  <div class="card card-wide">
+    <div class="header-row">
+      <button class="back-btn" onclick="showScreen('welcome')">Назад</button>
+      <div class="logo-wrap"><div class="logo">🕌</div></div>
+    </div>
+    <div class="title">Правила и инструкция</div>
+    <div class="subtitle">Ознакомьтесь с правилами и инструкцией тура, перед началом</div>
+
+    <div class="rules-grid" id="rules-grid">
+      <div style="text-align:center;grid-column:1/-1;padding:20px;color:#555">Загрузка правил...</div>
+    </div>
+
+    <button class="btn-primary" onclick="registerTourist()">Подключиться</button>
+  </div>
+</div>
+
+<!-- ═══════════════ SCREEN 3: GUIDE SELECT ═══════════════ -->
+<div class="screen" id="screen-guide-select">
+  <div class="card card-wide">
+    <div class="header-row">
+      <button class="back-btn" onclick="showScreen('rules')">Назад</button>
+      <div class="logo-wrap"><div class="logo">🕌</div></div>
+    </div>
+    <div class="title">Выберите гида</div>
+    <div class="subtitle">Выберите своего гида, который будет рассказывать о центре и экспонатах</div>
+
+    <div class="guides-scroll" id="guides-scroll">
+      <div style="color:#555;padding:20px">Загрузка гидов...</div>
+    </div>
+
+    <button class="btn-primary" id="btn-guide-next" disabled onclick="showScreen('specialist-select')">
+      Далее
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════ SCREEN 4: SPECIALIST SELECT ═══════════════ -->
+<div class="screen" id="screen-specialist-select">
+  <div class="card card-wide">
+    <div class="header-row">
+      <button class="back-btn" onclick="showScreen('guide-select')">Назад</button>
+      <div class="logo-wrap"><div class="logo">🕌</div></div>
+      <span class="session-badge" id="spec-screen-id"></span>
+    </div>
+    <div class="title">Выберите специалиста</div>
+    <div class="subtitle">На форме специалиста найди его номер, затем выбери этого специалиста</div>
+
+    <div class="specialists-scroll" id="specialists-scroll">
+      <div style="color:#555;padding:20px">Загрузка специалистов...</div>
+    </div>
+    <div class="spec-error" id="spec-error"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ SCREEN 5: WAITING ═══════════════ -->
+<div class="screen" id="screen-waiting">
+  <div class="card">
+    <div class="header-row">
+      <button class="back-btn" onclick="disconnectAndBack()">Назад</button>
+      <div class="logo-wrap"><div class="logo">🕌</div></div>
+    </div>
+    <div class="waiting-content">
+      <div class="title">Ожидание начала тура</div>
+      <div class="spinner"></div>
+      <div class="waiting-hint">Пожалуйста, держите планшет и следите за информацией. Специалист скоро начнёт тур.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SCREEN 6: DASHBOARD ═══════════════ -->
+<div class="screen" id="screen-dashboard">
+  <!-- Break overlay -->
+  <div class="break-overlay" id="break-overlay">
+    <div class="break-icon">☕</div>
+    <div class="break-title">Перерыв</div>
+    <div class="break-sub">Тур временно приостановлен. Ожидайте продолжения.</div>
+  </div>
+
+  <div class="dashboard-wrap">
+    <div class="dashboard-top">
+      <!-- Left: Guide video + info -->
+      <div class="guide-panel">
+        <div class="guide-video-wrap">
+          <video id="guide-video" autoplay loop muted playsinline>
+            <source src="" type="video/mp4">
+          </video>
+          <div id="guide-video-placeholder" class="guide-video-placeholder" style="display:flex">🎙</div>
+          <div class="guide-video-overlay">
+            <div class="guide-video-name" id="guide-panel-name">Гид</div>
+          </div>
+        </div>
+        <div class="guide-info-body">
+          <div class="guide-desc-text" id="guide-panel-desc">Выберите экспонат чтобы узнать о нём подробнее.</div>
+          <div class="section-info">
+            <div class="label">Текущий раздел</div>
+            <div class="value" id="info-section-name">—</div>
+          </div>
+          <div class="section-info" style="margin-top:8px">
+            <div class="label">Зал</div>
+            <div class="value" id="info-hall-name">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Exhibits -->
+      <div class="exhibits-panel">
+        <div class="exhibits-header">
+          <div class="exhibits-hall-name" id="dash-hall-name">Зал</div>
+          <div class="exhibits-section-name" id="dash-section-name">Раздел</div>
+          <div class="exhibits-hint">ⓘ Все экспонаты зала, можно пересмотреть ещё раз. Действует рассказ гида об экспонате</div>
+        </div>
+        <div class="exhibits-grid" id="exhibits-grid">
+          <div class="no-exhibits">Ожидание начала тура...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom timer bar -->
+    <div class="timer-bar">
+      <div class="tb-item">
+        <span class="tb-label">Ваше местонахождение</span>
+        <span class="tb-value" id="tb-hall">—</span>
+      </div>
+      <div class="tb-item">
+        <span class="tb-label">Экспонат</span>
+        <span class="tb-value gold" id="tb-exhibit">Название экспоната</span>
+      </div>
+      <div class="timer-progress">
+        <div class="timer-progress-fill" id="timer-fill" style="width:100%"></div>
+      </div>
+      <div class="tb-item" style="text-align:right">
+        <span class="tb-label">Перейдём через</span>
+        <span class="tb-value gold" id="tb-timer">—</span>
+      </div>
+      <div style="margin-left:12px">
+        <span class="status-badge waiting" id="dash-status-badge">Ожидание</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Exhibit video modal -->
+  <div class="exhibit-modal" id="exhibit-modal">
+    <div style="position:relative">
+      <button class="exhibit-modal-close" onclick="closeExhibitModal()">✕</button>
+      <div class="exhibit-modal-inner">
+        <video id="exhibit-video" controls autoplay>
+          <source src="" type="video/mp4">
+        </video>
+        <div class="exhibit-modal-info">
+          <div class="exhibit-modal-title" id="exhibit-modal-title">Название экспоната</div>
+          <div class="exhibit-modal-desc" id="exhibit-modal-desc"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SCREEN 7: RATING ═══════════════ -->
+<div class="screen" id="screen-rating">
+  <div class="card">
+    <div style="text-align:center;margin-bottom:20px">
+      <div class="logo" style="margin:0 auto 14px">🕌</div>
+      <div class="title">Благодарим за участие в туре</div>
+      <div class="subtitle">Пожалуйста, уделите минуту на ответы</div>
+    </div>
+
+    <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:16px">
+      <div style="font-size:14px;font-weight:600;text-align:center;margin-bottom:4px">Оцените качество тура</div>
+      <div class="stars-row" id="stars-row">
+        <button class="star-btn" data-val="1" onclick="setStar(1)">★</button>
+        <button class="star-btn" data-val="2" onclick="setStar(2)">★</button>
+        <button class="star-btn" data-val="3" onclick="setStar(3)">★</button>
+        <button class="star-btn" data-val="4" onclick="setStar(4)">★</button>
+        <button class="star-btn" data-val="5" onclick="setStar(5)">★</button>
+      </div>
+      <textarea class="rating-textarea" id="rating-comment"
+        placeholder="Расскажите о вашем впечатлении..."></textarea>
+      <div class="btn-row">
+        <button class="btn-skip" onclick="skipRating()">Пропустить</button>
+        <button class="btn-primary" style="flex:1" onclick="submitRating()">Отправить</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SCREEN 8: DONE ═══════════════ -->
+<div class="screen" id="screen-done">
+  <div class="card">
+    <div style="text-align:center;margin-bottom:20px">
+      <div class="logo" style="margin:0 auto 14px">🕌</div>
+      <div class="title">Благодарим за участие в туре</div>
+      <div class="subtitle">Пожалуйста, прочтите правила перед выходом</div>
+    </div>
+
+    <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:20px;margin-bottom:16px;text-align:center">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">Сдайте планшет и наушники</div>
+      <div style="font-size:12px;color:#888;margin-bottom:16px">
+        Сдайте планшет и наушники сотруднику, и не забудьте взять все вещественные входы
+      </div>
+      <div class="done-countdown" id="done-countdown">02:30</div>
+      <div style="font-size:11px;color:#666;margin-top:4px">Автоматический сброс через</div>
+    </div>
+
+    <button class="btn-primary" onclick="finishTour()">Завершить</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── State ────────────────────────────────────────────────────
+  const state = {
+    lang: 'en',
+    deviceToken: /^\d{1,3}$/.test(localStorage.getItem('deviceToken') || '') ? localStorage.getItem('deviceToken') : null,
+    touristId: localStorage.getItem('touristId') ? +localStorage.getItem('touristId') : null,
+    sessionId: null,
+    selectedGuide: null,
+    ws: null,
+    tourStatus: 'waiting',
+    currentSection: null,
+    timerInterval: null,
+    timerRemaining: 0,
+    timerTotal: 0,
+    totalRemaining: 0,
+    totalTimerInterval: null,
+    doneCountdown: null,
+    selectedRating: 0,
+    pollInterval: null,
+    lobbyWs: null,
+  };
+
+  const API = '/ru/api/v1';
+  const WS_HOST = location.host;
+
+  // ── WS status indicator ───────────────────────────────────
+  function setWsStatus(status) {
+    const dot = document.getElementById('ws-dot');
+    const label = document.getElementById('ws-label');
+    dot.className = 'ws-dot';
+    if (status === 'connected') {
+      dot.classList.add('connected');
+      label.textContent = 'WebSocket подключён';
+    } else if (status === 'connecting') {
+      dot.classList.add('connecting');
+      label.textContent = 'Подключение...';
+    } else if (status === 'error') {
+      dot.classList.add('error');
+      label.textContent = 'Ошибка подключения';
+    } else {
+      label.textContent = 'Не подключён';
+    }
+  }
+
+  // ── Screen navigation ─────────────────────────────────────
+  function showScreen(name) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-' + name).classList.add('active');
+
+    if (name === 'rules') loadRules();
+    if (name === 'guide-select') loadGuides();
+    if (name === 'specialist-select') { loadSpecialists(); }
+  }
+
+  // ── Language ──────────────────────────────────────────────
+  function selectLang(btn) {
+    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.lang = btn.dataset.lang;
+  }
+
+  function setTheme(theme, btn) {
+    document.querySelectorAll('#theme-toggle .toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const accessPanel = document.getElementById('access-panel');
+    accessPanel.style.display = theme === 'light' ? 'block' : 'none';
+  }
+
+  function setFontSize(size, btn) {
+    document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const map = { small: '13px', medium: '15px', large: '17px' };
+    document.body.style.fontSize = map[size];
+  }
+
+  // ── Rules ─────────────────────────────────────────────────
+  async function loadRules() {
+    const grid = document.getElementById('rules-grid');
+    try {
+      const res = await fetch(`${API}/guide/rules/`);
+      const data = await res.json();
+      const rules = Array.isArray(data) ? data : (data.results || []);
+      if (!rules.length) {
+        grid.innerHTML = `
+          <div class="rule-card"><div class="rule-num">1. Общие правила</div>
+            <div class="rule-title">Общие правила</div>
+            <div class="rule-text">Надеть что-то на юбку, руки нажимайте аккуратно</div></div>
+          <div class="rule-card"><div class="rule-num">2. Перерывы в залах</div>
+            <div class="rule-title">Перерывы в залах</div>
+            <div class="rule-text">Весь тур будет у вас на руках, каждый активный интерактивный объект</div></div>
+          <div class="rule-card"><div class="rule-num">3. Подключение к специалисту</div>
+            <div class="rule-title">Подключение к специалисту</div>
+            <div class="rule-text">Найдите номер своего специалиста на нём бейдже и следуйте его номеру в программе тура</div></div>
+          <div class="rule-card"><div class="rule-num">4. Навигация</div>
+            <div class="rule-title">Навигация</div>
+            <div class="rule-text">Следуйте за специалистом, чтобы перемещаться в правильном направлении</div></div>`;
+        return;
+      }
+      grid.innerHTML = rules.map((r, i) => `
+        <div class="rule-card">
+          <div class="rule-num">${i + 1}. ${r.title || r.title_ru || ''}</div>
+          <div class="rule-title">${r.title || r.title_ru || ''}</div>
+          <div class="rule-text">${stripMarkdown(r.content || r.content_ru || '')}</div>
+        </div>`).join('');
+    } catch (e) {
+      grid.innerHTML = '<div style="color:#e74c3c;text-align:center;grid-column:1/-1">Ошибка загрузки правил</div>';
+    }
+  }
+
+  function stripMarkdown(md) {
+    return md.replace(/[#*_`[\]]/g, '').replace(/\n/g, ' ').slice(0, 200);
+  }
+
+  // ── Register tourist ──────────────────────────────────────
+  async function registerTourist() {
+    if (state.deviceToken) {
+      // Verify the stored token still exists in DB
+      try {
+        const check = await fetch(`${API}/tour/status/?device_token=${state.deviceToken}`);
+        const checkData = await check.json();
+        if (checkData.token_valid === false) {
+          // Token not in DB (e.g. DB was reset) — clear and re-register
+          state.deviceToken = null;
+          state.touristId = null;
+          localStorage.removeItem('deviceToken');
+          localStorage.removeItem('touristId');
+        }
+      } catch (e) { /* network error — proceed with stored token */ }
+    }
+    if (state.deviceToken) {
+      document.getElementById('spec-screen-id').textContent = `ID: ${state.deviceToken}`;
+      connectLobby();
+      showScreen('guide-select');
+      return;
+    }
+    try {
+      const res = await fetch(`${API}/tour/register/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        console.error('Register failed:', res.status, err);
+        showToast(`Ошибка регистрации (${res.status})`);
+        return;
+      }
+      const data = await res.json();
+      if (!data.device_token) {
+        showToast('Сервер не вернул токен устройства');
+        return;
+      }
+      state.deviceToken = data.device_token;
+      state.touristId = data.id;
+      localStorage.setItem('deviceToken', data.device_token);
+      localStorage.setItem('touristId', data.id);
+      document.getElementById('spec-screen-id').textContent = `ID: ${data.device_token}`;
+      connectLobby();
+      showScreen('guide-select');
+    } catch (e) {
+      console.error('Register error:', e);
+      showToast('Ошибка регистрации. Проверьте соединение.');
+    }
+  }
+
+  // ── Lobby WebSocket (real-time specialist list + session assignment) ──
+  function connectLobby() {
+    if (state.lobbyWs) return;
+    if (!state.deviceToken) return;
+
+    const url = `ws://${WS_HOST}/ws/lobby/?device_token=${state.deviceToken}`;
+    const lws = new WebSocket(url);
+    state.lobbyWs = lws;
+
+    lws.onopen = () => {
+      console.log('Lobby WS connected');
+      setWsStatus('connected');
+    };
+
+    lws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'specialist_list') {
+        renderSpecialistList(msg.specialists || []);
+      } else if (msg.type === 'session_assigned') {
+        // Specialist added us to a session
+        if (!state.sessionId) {
+          state.sessionId = msg.session_id;
+          disconnectLobby();
+          connectWS();
+          showScreen('waiting');
+          showToast('Специалист добавил вас в тур');
+        }
+      }
+    };
+
+    lws.onclose = () => {
+      state.lobbyWs = null;
+      if (!state.sessionId) setWsStatus('disconnected');
+    };
+
+    lws.onerror = () => {
+      setWsStatus('error');
+      // Fallback to HTTP polling if lobby WS fails
+      startSessionPoll();
+    };
+  }
+
+  function disconnectLobby() {
+    if (state.lobbyWs) { state.lobbyWs.close(); state.lobbyWs = null; }
+  }
+
+  // Fallback HTTP polling (if lobby WS not available)
+  function startSessionPoll() {
+    stopSessionPoll();
+    if (!state.deviceToken) return;
+    state.pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`${API}/tour/status/?device_token=${state.deviceToken}`);
+        const data = await res.json();
+        if (data.session_id && !state.sessionId) {
+          stopSessionPoll();
+          state.sessionId = data.session_id;
+          connectWS();
+          showScreen('waiting');
+        }
+      } catch {}
+    }, 3000);
+  }
+
+  function stopSessionPoll() {
+    if (state.pollInterval) { clearInterval(state.pollInterval); state.pollInterval = null; }
+  }
+
+  // ── Guides ────────────────────────────────────────────────
+  async function loadGuides() {
+    const scroll = document.getElementById('guides-scroll');
+    try {
+      const res = await fetch(`${API}/guide/guides/`);
+      const data = await res.json();
+      const guides = Array.isArray(data) ? data : (data.results || []);
+
+      if (!guides.length) {
+        scroll.innerHTML = '<div style="color:#555;padding:20px">Нет доступных гидов</div>';
+        document.getElementById('btn-guide-next').disabled = false;
+        return;
+      }
+
+      scroll.innerHTML = guides.map(g => renderGuideCard(g, state.selectedGuide?.id === g.id)).join('');
+      document.getElementById('btn-guide-next').disabled = !state.selectedGuide;
+    } catch (e) {
+      scroll.innerHTML = '<div style="color:#e74c3c;padding:20px">Ошибка загрузки гидов</div>';
+    }
+  }
+
+  function renderGuideCard(g, selected) {
+    const thumb = g.thumbnail
+      ? `<img class="guide-thumb" src="${g.thumbnail}" alt="${g.name}">`
+      : `<div class="guide-thumb-placeholder">👤</div>`;
+    const safeG = JSON.stringify(g).replace(/"/g, '&quot;');
+    return `
+      <div class="guide-card ${selected ? 'selected' : ''}" data-guide-id="${g.id}" onclick="selectGuide(JSON.parse(this.dataset.guideJson));" data-guide-json="${safeG}">
+        <div class="play-overlay">
+          ${thumb}
+          ${g.video ? `<div class="play-btn">▶</div>` : ''}
+        </div>
+        <div class="guide-info">
+          <div class="guide-name">${g.name}</div>
+          <div class="guide-desc">${g.subtitles || ''}</div>
+          ${selected ? '<div class="selected-badge">Выбран</div>' : ''}
+        </div>
+      </div>`;
+  }
+
+  function selectGuide(g) {
+    state.selectedGuide = g;
+    document.getElementById('btn-guide-next').disabled = false;
+    // Update selection styles without re-fetching
+    document.querySelectorAll('.guide-card').forEach(el => {
+      const isSelected = el.dataset.guideId == g.id;
+      el.classList.toggle('selected', isSelected);
+      const badge = el.querySelector('.selected-badge');
+      if (badge) badge.remove();
+      if (isSelected) {
+        const info = el.querySelector('.guide-info');
+        if (info) {
+          const b = document.createElement('div');
+          b.className = 'selected-badge';
+          b.textContent = 'Выбран';
+          info.appendChild(b);
+        }
+      }
+    });
+    // Update dashboard guide panel
+    document.getElementById('guide-panel-name').textContent = g.name;
+    document.getElementById('guide-panel-desc').textContent = g.subtitles || 'Выберите экспонат чтобы узнать о нём подробнее.';
+    if (g.video) {
+      const vid = document.getElementById('guide-video');
+      vid.src = g.video;
+      vid.style.display = 'block';
+      document.getElementById('guide-video-placeholder').style.display = 'none';
+      vid.play().catch(() => {});
+    }
+  }
+
+  // ── Specialists ───────────────────────────────────────────
+  async function loadSpecialists() {
+    // Initial HTTP fetch; lobby WS will push updates after this
+    const scroll = document.getElementById('specialists-scroll');
+    try {
+      const res = await fetch(`${API}/guide/specialists/`);
+      const data = await res.json();
+      const specs = Array.isArray(data) ? data : (data.results || []);
+      renderSpecialistList(specs);
+    } catch (e) {
+      scroll.innerHTML = '<div style="color:#e74c3c;padding:20px">Ошибка загрузки</div>';
+    }
+  }
+
+  function renderSpecialistList(specs) {
+    const scroll = document.getElementById('specialists-scroll');
+    if (!specs.length) {
+      scroll.innerHTML = '<div style="color:#555;padding:20px">Нет активных специалистов</div>';
+      return;
+    }
+    scroll.innerHTML = specs.map(s => renderSpecCard(s)).join('');
+  }
+
+  function renderSpecCard(s) {
+    const hasSession = !!s.active_session_id;
+    const avatar = s.avatar
+      ? `<img class="spec-avatar" src="${s.avatar}" alt="${s.name}">`
+      : `<div class="spec-avatar-placeholder">👤</div>`;
+    return `
+      <div class="spec-card" id="spec-card-${s.id}">
+        <div class="spec-num">${s.number}</div>
+        ${avatar}
+        <div class="spec-name">${s.name}</div>
+        <button class="spec-join-btn" ${!hasSession ? 'disabled' : ''}
+          onclick="joinSpecialist(${s.id}, ${s.number}, ${s.active_session_id || 'null'})">
+          ${hasSession ? 'Подключиться' : 'Недоступен'}
+        </button>
+      </div>`;
+  }
+
+  async function joinSpecialist(specId, specNumber, sessionId) {
+    const errEl = document.getElementById('spec-error');
+    errEl.textContent = '';
+    if (!state.deviceToken) { errEl.textContent = 'Сначала пройдите регистрацию'; return; }
+    try {
+      const res = await fetch(`${API}/tour/join/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ specialist_number: specNumber, device_token: state.deviceToken }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        errEl.textContent = data.error || 'Ошибка подключения';
+        return;
+      }
+      state.sessionId = sessionId || data.id;
+      disconnectLobby();
+      stopSessionPoll();
+      connectWS();
+      showScreen('waiting');
+    } catch (e) {
+      errEl.textContent = 'Ошибка сети. Попробуйте ещё раз.';
+    }
+  }
+
+  // ── WebSocket ─────────────────────────────────────────────
+  function connectWS() {
+    if (state.ws) state.ws.close();
+    const url = `ws://${WS_HOST}/ws/tour/${state.sessionId}/?device_token=${state.deviceToken}`;
+    setWsStatus('connecting');
+    state.ws = new WebSocket(url);
+
+    state.ws.onopen = () => {
+      setWsStatus('connected');
+    };
+    state.ws.onclose = (e) => {
+      setWsStatus('disconnected');
+      if (e.code === 4003) { showScreen('rules'); showToast('Вы были отключены специалистом'); }
+    };
+    state.ws.onerror = () => setWsStatus('error');
+    state.ws.onmessage = (ev) => {
+      try { handleWsMessage(JSON.parse(ev.data)); } catch {}
+    };
+  }
+
+  function handleWsMessage(msg) {
+    const type = msg.type;
+
+    if (type === 'session_state') {
+      applySessionState(msg);
+    } else if (type === 'tour_started') {
+      state.tourStatus = 'in_progress';
+      applySessionState(msg);
+      showScreen('dashboard');
+      document.getElementById('break-overlay').classList.remove('visible');
+    } else if (type === 'section_changed') {
+      applySessionState(msg);
+    } else if (type === 'tour_on_break') {
+      state.tourStatus = 'on_break';
+      clearInterval(state.timerInterval);
+      document.getElementById('break-overlay').classList.add('visible');
+      document.getElementById('dash-status-badge').className = 'status-badge on-break';
+      document.getElementById('dash-status-badge').textContent = 'Перерыв';
+    } else if (type === 'tour_resumed') {
+      state.tourStatus = 'in_progress';
+      applySessionState(msg);
+      document.getElementById('break-overlay').classList.remove('visible');
+      document.getElementById('dash-status-badge').className = 'status-badge in-progress';
+      document.getElementById('dash-status-badge').textContent = 'В туре';
+    } else if (type === 'tour_finished') {
+      state.tourStatus = 'finished';
+      clearInterval(state.timerInterval);
+      showScreen('rating');
+    } else if (type === 'kicked') {
+      if (state.ws) state.ws.close();
+      showScreen('specialist-select');
+      showToast('Вы были отключены от тура');
+    }
+  }
+
+  function applySessionState(msg) {
+    state.tourStatus = msg.status || state.tourStatus;
+    state.currentSection = msg.current_section || null;
+
+    // Badge
+    const badge = document.getElementById('dash-status-badge');
+    const statusMap = {
+      waiting: ['waiting', 'Ожидание'],
+      in_progress: ['in-progress', 'В туре'],
+      on_break: ['on-break', 'Перерыв'],
+      finished: ['finished', 'Завершён'],
+    };
+    const [cls, label] = statusMap[state.tourStatus] || ['waiting', state.tourStatus];
+    badge.className = `status-badge ${cls}`;
+    badge.textContent = label;
+
+    // Section info
+    if (state.currentSection) {
+      const sec = state.currentSection;
+      const hallName = sec.hall ? sec.hall.name : '—';
+      document.getElementById('dash-hall-name').textContent = hallName.toUpperCase();
+      document.getElementById('dash-section-name').textContent = sec.name;
+      document.getElementById('info-section-name').textContent = sec.name;
+      document.getElementById('info-hall-name').textContent = hallName;
+      document.getElementById('tb-hall').textContent = hallName;
+
+      renderExhibits(sec.exhibits || []);
+    } else {
+      document.getElementById('exhibits-grid').innerHTML = '<div class="no-exhibits">Ожидание начала тура...</div>';
+    }
+
+    // Section timer
+    if (msg.timer) {
+      startClientTimer(msg.timer.section_remaining_seconds, msg.timer.section_total_seconds);
+    }
+
+    // Total tour remaining (shown in WS bar)
+    if (msg.total_remaining_seconds != null) {
+      startTotalTimer(msg.total_remaining_seconds);
+    }
+
+    // If in_progress and we're on waiting screen → go to dashboard
+    if (state.tourStatus === 'in_progress' && document.getElementById('screen-waiting').classList.contains('active')) {
+      showScreen('dashboard');
+    }
+  }
+
+  function startClientTimer(remaining, total) {
+    clearInterval(state.timerInterval);
+    state.timerRemaining = remaining;
+    state.timerTotal = total || remaining;
+    updateTimerDisplay();
+    state.timerInterval = setInterval(() => {
+      if (state.tourStatus !== 'in_progress') return;
+      state.timerRemaining = Math.max(0, state.timerRemaining - 1);
+      updateTimerDisplay();
+    }, 1000);
+  }
+
+  function updateTimerDisplay() {
+    const r = state.timerRemaining;
+    const m = Math.floor(r / 60).toString().padStart(2, '0');
+    const s = (r % 60).toString().padStart(2, '0');
+    document.getElementById('tb-timer').textContent = `${m}:${s}`;
+
+    const pct = state.timerTotal > 0 ? (r / state.timerTotal) * 100 : 100;
+    document.getElementById('timer-fill').style.width = pct + '%';
+  }
+
+  function startTotalTimer(remainingSecs) {
+    clearInterval(state.totalTimerInterval);
+    state.totalRemaining = remainingSecs;
+    const el = document.getElementById('ws-total-time');
+    const wrap = document.getElementById('ws-total-timer');
+    wrap.style.display = 'block';
+    const update = () => {
+      const h = Math.floor(state.totalRemaining / 3600);
+      const m = Math.floor((state.totalRemaining % 3600) / 60).toString().padStart(2,'0');
+      const s = (state.totalRemaining % 60).toString().padStart(2,'0');
+      el.textContent = h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
+    };
+    update();
+    state.totalTimerInterval = setInterval(() => {
+      if (state.tourStatus !== 'in_progress') return;
+      state.totalRemaining = Math.max(0, state.totalRemaining - 1);
+      update();
+    }, 1000);
+  }
+
+  // ── Exhibits ──────────────────────────────────────────────
+  function renderExhibits(exhibits) {
+    const grid = document.getElementById('exhibits-grid');
+    if (!exhibits || !exhibits.length) {
+      grid.innerHTML = '<div class="no-exhibits">Экспонаты не найдены</div>';
+      return;
+    }
+    grid.innerHTML = exhibits.map((ex, i) => {
+      const thumb = ex.thumbnail
+        ? `<img class="ex-thumb" src="${ex.thumbnail}" alt="${ex.title}">`
+        : `<div class="ex-thumb-placeholder">🏺</div>`;
+      return `
+        <div class="exhibit-card" onclick="openExhibit(${JSON.stringify(ex).replace(/"/g,'&quot;')})">
+          ${thumb}
+          <div class="ex-body">
+            <div class="ex-title">${ex.title}</div>
+            <div class="ex-num">${i + 1} из ${exhibits.length}</div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function openExhibit(ex) {
+    document.getElementById('exhibit-modal-title').textContent = ex.title;
+    document.getElementById('exhibit-modal-desc').textContent = ex.description || '';
+    document.getElementById('tb-exhibit').textContent = ex.title;
+
+    const vid = document.getElementById('exhibit-video');
+    if (ex.video) {
+      vid.src = ex.video;
+      vid.style.display = 'block';
+      vid.load();
+      vid.play().catch(() => {});
+    } else {
+      vid.style.display = 'none';
+      vid.src = '';
+    }
+
+    document.getElementById('exhibit-modal').classList.add('open');
+  }
+
+  function closeExhibitModal() {
+    const vid = document.getElementById('exhibit-video');
+    vid.pause();
+    vid.src = '';
+    document.getElementById('exhibit-modal').classList.remove('open');
+  }
+
+  // ── Disconnect ────────────────────────────────────────────
+  function disconnectAndBack() {
+    if (state.ws) { state.ws.close(); state.ws = null; }
+    state.sessionId = null;
+    showScreen('specialist-select');
+  }
+
+  // ── Rating ────────────────────────────────────────────────
+  function setStar(val) {
+    state.selectedRating = val;
+    document.querySelectorAll('.star-btn').forEach(btn => {
+      btn.classList.toggle('active', parseInt(btn.dataset.val) <= val);
+    });
+  }
+
+  async function submitRating() {
+    if (!state.selectedRating) { showToast('Выберите оценку от 1 до 5 звёзд'); return; }
+    const comment = document.getElementById('rating-comment').value.trim();
+    try {
+      await fetch(`${API}/tour/rating/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          device_token: state.deviceToken,
+          rating: state.selectedRating,
+          comment,
+        }),
+      });
+    } catch {}
+    showToast('Спасибо за оставленный отзыв, до новых встреч!');
+    setTimeout(() => showScreen('done'), 800);
+    startDoneCountdown();
+  }
+
+  function skipRating() {
+    showScreen('done');
+    startDoneCountdown();
+  }
+
+  // ── Done screen ───────────────────────────────────────────
+  function startDoneCountdown() {
+    let secs = 150; // 2:30
+    clearInterval(state.doneCountdown);
+    updateDoneCountdown(secs);
+    state.doneCountdown = setInterval(() => {
+      secs--;
+      updateDoneCountdown(secs);
+      if (secs <= 0) { clearInterval(state.doneCountdown); finishTour(); }
+    }, 1000);
+  }
+
+  function updateDoneCountdown(secs) {
+    const m = Math.floor(secs / 60).toString().padStart(2, '0');
+    const s = (secs % 60).toString().padStart(2, '0');
+    document.getElementById('done-countdown').textContent = `${m}:${s}`;
+  }
+
+  function finishTour() {
+    clearInterval(state.doneCountdown);
+    if (state.ws) { state.ws.close(); state.ws = null; }
+    // Reset state for next tourist
+    state.deviceToken = null;
+    state.touristId = null;
+    state.sessionId = null;
+    state.selectedGuide = null;
+    state.selectedRating = 0;
+    state.tourStatus = 'waiting';
+    clearInterval(state.timerInterval);
+    clearInterval(state.totalTimerInterval);
+    stopSessionPoll();
+    disconnectLobby();
+    localStorage.removeItem('deviceToken');
+    localStorage.removeItem('touristId');
+    setWsStatus('disconnected');
+    document.getElementById('ws-total-timer').style.display = 'none';
+    showScreen('welcome');
+  }
+
+  // ── Toast ─────────────────────────────────────────────────
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
+</script>
+</body>
+</html>

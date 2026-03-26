@@ -1,0 +1,349 @@
+# English translations for ICCU iPad Tour
+# Copyright (C) 2026
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-03-26 17:05+0500\n"
+"PO-Revision-Date: 2026-03-26 17:05+0500\n"
+"Last-Translator: \n"
+"Language-Team: English\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: apps/exhibit/models/exhibit.py:17 apps/exhibit/models/section.py:53
+msgid "Раздел"
+msgstr "Section"
+
+#: apps/exhibit/models/exhibit.py:22 apps/exhibit/models/hall.py:15
+#: apps/exhibit/models/section.py:22
+msgid "Название"
+msgstr "Name"
+
+#: apps/exhibit/models/exhibit.py:28 apps/exhibit/models/hall.py:21
+#: apps/exhibit/models/section.py:28
+msgid "Описание"
+msgstr "Description"
+
+#: apps/exhibit/models/exhibit.py:35 apps/guide/models/guide.py:29
+msgid "Видео"
+msgstr "Video"
+
+#: apps/exhibit/models/exhibit.py:36
+msgid "Видео экспонатов"
+msgstr "Exhibit video"
+
+#: apps/exhibit/models/exhibit.py:43 apps/guide/models/guide.py:36
+msgid "Превью"
+msgstr "Thumbnail"
+
+#: apps/exhibit/models/exhibit.py:48 apps/exhibit/models/hall.py:26
+#: apps/exhibit/models/section.py:33 apps/guide/models/background.py:17
+#: apps/guide/models/guide.py:41
+msgid "Порядок"
+msgstr "Order"
+
+#: apps/exhibit/models/exhibit.py:53 apps/exhibit/models/hall.py:31
+#: apps/exhibit/models/section.py:49 apps/guide/models/background.py:22
+#: apps/guide/models/guide.py:52 apps/specialist/models/specialist.py:37
+#: apps/tour/models/tourist_session.py:63
+msgid "Активен"
+msgstr "Active"
+
+#: apps/exhibit/models/exhibit.py:57
+msgid "Экспонат"
+msgstr "Exhibit"
+
+#: apps/exhibit/models/exhibit.py:58
+msgid "Экспонаты"
+msgstr "Exhibits"
+
+#: apps/exhibit/models/hall.py:35 apps/exhibit/models/section.py:17
+msgid "Зал"
+msgstr "Hall"
+
+#: apps/exhibit/models/hall.py:36
+msgid "Залы"
+msgstr "Halls"
+
+#: apps/exhibit/models/section.py:38
+msgid "Длительность (минут)"
+msgstr "Duration (minutes)"
+
+#: apps/exhibit/models/section.py:43
+msgid "Перерыв после раздела (минут)"
+msgstr "Break after section (minutes)"
+
+#: apps/exhibit/models/section.py:44
+msgid "Длительность перерыва после завершения этого раздела"
+msgstr "Break duration after this section ends"
+
+#: apps/exhibit/models/section.py:54
+msgid "Разделы"
+msgstr "Sections"
+
+#: apps/guide/models/background.py:12
+msgid "Изображение"
+msgstr "Image"
+
+#: apps/guide/models/background.py:26
+msgid "Фон"
+msgstr "Background"
+
+#: apps/guide/models/background.py:27
+msgid "Фоны"
+msgstr "Backgrounds"
+
+#: apps/guide/models/guide.py:15
+msgid "Имя"
+msgstr "Name"
+
+#: apps/guide/models/guide.py:21
+msgid "Субтитры"
+msgstr "Subtitles"
+
+#: apps/guide/models/guide.py:22
+msgid "Текст субтитров для видео гида"
+msgstr "Subtitle text for guide video"
+
+#: apps/guide/models/guide.py:46
+msgid "Жестовый язык"
+msgstr "Sign language"
+
+#: apps/guide/models/guide.py:47
+msgid "Гид показывает жестами и говорит"
+msgstr "Guide uses sign language and speaks"
+
+#: apps/guide/models/guide.py:56
+msgid "Гид"
+msgstr "Guide"
+
+#: apps/guide/models/guide.py:57
+msgid "Гиды"
+msgstr "Guides"
+
+#: apps/guide/models/rules_and_recs.py:12
+msgid "Заголовок"
+msgstr "Title"
+
+#: apps/guide/models/rules_and_recs.py:13
+msgid "Например: Общие правила"
+msgstr "E.g.: General rules"
+
+#: apps/guide/models/rules_and_recs.py:17
+msgid "Номер блока"
+msgstr "Block number"
+
+#: apps/guide/models/rules_and_recs.py:17
+msgid "Порядковый номер (1, 2, 3...)"
+msgstr "Sequential number (1, 2, 3...)"
+
+#: apps/guide/models/rules_and_recs.py:21
+msgid "Содержимое (Markdown)"
+msgstr "Content (Markdown)"
+
+#: apps/guide/models/rules_and_recs.py:23
+msgid ""
+"Поддерживает markdown-разметку:\n"
+"- Списки с точками\n"
+"**Жирный текст**\n"
+"*Курсив*\n"
+"Обычный текст"
+msgstr ""
+"Supports markdown:\n"
+"- Bullet lists\n"
+"**Bold text**\n"
+"*Italic*\n"
+"Plain text"
+
+#: apps/guide/models/rules_and_recs.py:31
+msgid "Активна"
+msgstr "Active"
+
+#: apps/guide/models/rules_and_recs.py:34
+msgid "Блок правил"
+msgstr "Rules block"
+
+#: apps/guide/models/rules_and_recs.py:35
+msgid "Блоки правил"
+msgstr "Rules blocks"
+
+#: apps/guide/models/rules_and_recs.py:49
+msgid "Можно иметь максимум 4 записей правил"
+msgstr "Maximum 4 rules blocks allowed"
+
+#: apps/specialist/models/specialist.py:19 apps/users/models/user.py:30
+msgid "Пользователь"
+msgstr "User"
+
+#: apps/specialist/models/specialist.py:24
+msgid "Номер"
+msgstr "Number"
+
+#: apps/specialist/models/specialist.py:25
+msgid "Уникальный номер на бейдже"
+msgstr "Unique badge number"
+
+#: apps/specialist/models/specialist.py:32
+msgid "Аватар"
+msgstr "Avatar"
+
+#: apps/specialist/models/specialist.py:41
+#: apps/specialist/models/tour_session.py:25 apps/users/models/user.py:17
+msgid "Специалист"
+msgstr "Specialist"
+
+#: apps/specialist/models/specialist.py:42
+msgid "Специалисты"
+msgstr "Specialists"
+
+#: apps/specialist/models/tour_session.py:16
+msgid "Ожидание подключений"
+msgstr "Waiting"
+
+#: apps/specialist/models/tour_session.py:17
+msgid "Тур идёт"
+msgstr "In progress"
+
+#: apps/specialist/models/tour_session.py:18
+msgid "Перерыв"
+msgstr "On break"
+
+#: apps/specialist/models/tour_session.py:19
+msgid "Завершён"
+msgstr "Finished"
+
+#: apps/specialist/models/tour_session.py:32
+msgid "Статус"
+msgstr "Status"
+
+#: apps/specialist/models/tour_session.py:41
+msgid "Текущий раздел"
+msgstr "Current section"
+
+#: apps/specialist/models/tour_session.py:42
+msgid "Раздел, который специалист сейчас показывает"
+msgstr "Section currently shown by the specialist"
+
+#: apps/specialist/models/tour_session.py:47
+msgid "Кол-во туристов"
+msgstr "Tourist count"
+
+#: apps/specialist/models/tour_session.py:53
+msgid "Начало текущего раздела"
+msgstr "Current section start time"
+
+#: apps/specialist/models/tour_session.py:59
+msgid "Остаток при паузе (секунд)"
+msgstr "Remaining on pause (seconds)"
+
+#: apps/specialist/models/tour_session.py:65
+msgid "Остаток перерыва (секунд)"
+msgstr "Break remaining (seconds)"
+
+#: apps/specialist/models/tour_session.py:70
+msgid "Техническая остановка"
+msgstr "Technical stop"
+
+#: apps/specialist/models/tour_session.py:78
+#: apps/tour/models/tourist_session.py:32
+msgid "Сессия тура"
+msgstr "Tour session"
+
+#: apps/specialist/models/tour_session.py:79
+msgid "Сессии туров"
+msgstr "Tour sessions"
+
+#: apps/tour/models/rating.py:17 apps/tour/models/tourist_session.py:81
+msgid "Сессия туриста"
+msgstr "Tourist session"
+
+#: apps/tour/models/rating.py:22
+msgid "Оценка"
+msgstr "Rating"
+
+#: apps/tour/models/rating.py:23
+msgid "От 1 до 5 звёзд"
+msgstr "From 1 to 5 stars"
+
+#: apps/tour/models/rating.py:29
+msgid "Комментарий"
+msgstr "Comment"
+
+#: apps/tour/models/rating.py:34
+msgid "Дата"
+msgstr "Date"
+
+#: apps/tour/models/rating.py:38
+msgid "Оценка тура"
+msgstr "Tour rating"
+
+#: apps/tour/models/rating.py:39
+msgid "Оценки туров"
+msgstr "Tour ratings"
+
+#: apps/tour/models/tourist_session.py:37
+msgid "Номер устройства"
+msgstr "Device number"
+
+#: apps/tour/models/tourist_session.py:38
+msgid "Число от 1 до 600"
+msgstr "Number from 1 to 600"
+
+#: apps/tour/models/tourist_session.py:45
+msgid "Название устройства"
+msgstr "Device name"
+
+#: apps/tour/models/tourist_session.py:51
+msgid "IP-адрес"
+msgstr "IP address"
+
+#: apps/tour/models/tourist_session.py:57
+msgid "Номер в туре"
+msgstr "Tour number"
+
+#: apps/tour/models/tourist_session.py:58
+msgid "Порядковый номер присоединения к туру"
+msgstr "Sequential number of joining the tour"
+
+#: apps/tour/models/tourist_session.py:69
+msgid "Присоединился"
+msgstr "Joined"
+
+#: apps/tour/models/tourist_session.py:75
+msgid "Покинул"
+msgstr "Left"
+
+#: apps/tour/models/tourist_session.py:82
+msgid "Сессии туристов"
+msgstr "Tourist sessions"
+
+#: apps/users/models/user.py:18
+msgid "Администратор"
+msgstr "Administrator"
+
+#: apps/users/models/user.py:24
+msgid "Роль"
+msgstr "Role"
+
+#: apps/users/models/user.py:31
+msgid "Пользователи"
+msgstr "Users"
+
+#: config/urls.py:18
+#, python-format
+msgid "%(app_name)s site admin"
+msgstr "%(app_name)s site admin"
+
+#: config/urls.py:19
+#, python-format
+msgid "%(app_name)s administration"
+msgstr "%(app_name)s administration"
+
+#: config/urls.py:20
+msgid "Site administration"
+msgstr "Site administration"

@@ -1,0 +1,86 @@
+name: iccu_guide
+
+x-backend-defaults: &backend-defaults
+  build:
+    context: .
+    dockerfile: .docker/backend/Dockerfile
+  env_file:
+    - .env
+  volumes:
+    - django-static:/app/static
+    - django-media:/app/media
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+
+
+services:
+  backend:
+    <<: *backend-defaults
+    expose:
+      - 8000
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/healthcheck/ || exit 1"]
+      interval: 30s
+      retries: 5
+      start_period: 5s
+      timeout: 3s
+    command: bash scripts/entrypoint.sh
+
+  backend-asgi:
+    <<: *backend-defaults
+    expose:
+      - 8001
+    command: bash scripts/entrypoint-asgi.sh
+
+  db:
+    image: postgres:17.4
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    expose:
+      - 5432
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'" ]
+      interval: 3s
+      retries: 5
+      timeout: 3s
+    restart: unless-stopped
+  
+  redis:
+    image: redis:8
+    expose:
+      - 6379
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 3s
+      retries: 5
+      timeout: 3s
+    restart: unless-stopped
+  
+  nginx:
+    image: nginx:stable-alpine
+    ports:
+      - "30312:80"
+    volumes:
+      - ./.docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - django-static:/var/www/static
+      - django-media:/var/www/media
+    depends_on:
+      - backend
+      - backend-asgi
+
+  
+volumes:
+  postgres-data:
+  django-static:
+  redis-data:
+  django-media:

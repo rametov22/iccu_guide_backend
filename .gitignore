@@ -1,0 +1,6 @@
+__pycache__/
+*.рус
+.env
+backend/static/
+backend/media/
+*django.mo
