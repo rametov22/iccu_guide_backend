@@ -1,0 +1,73 @@
+name: iccu_guide
+
+services:
+  backend:
+    image: registry-test.glob.uz/iccu/guide-backend:latest
+    env_file:
+      - .env
+    expose:
+      - 8000
+    volumes:
+      - django-static:/app/static
+      - django-media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/healthcheck/ || exit 1"]
+      interval: 30s
+      retries: 5
+      start_period: 5s
+      timeout: 3s
+    command: bash scripts/entrypoint.sh
+    restart: unless-stopped
+
+  db:
+    image: postgres:17.4
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    expose:
+      - 5432
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'"]
+      interval: 3s
+      retries: 5
+      timeout: 3s
+    restart: unless-stopped
+
+  redis:
+    image: redis:8
+    expose:
+      - 6379
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      retries: 5
+      timeout: 3s
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:stable-alpine
+    ports:
+      - "30312:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - django-static:/var/www/static
+      - django-media:/var/www/media
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  django-static:
+  redis-data:
+  django-media:
