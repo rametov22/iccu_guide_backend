@@ -14,11 +14,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         User = get_user_model()
-        email = os.environ.get("DJANGO_SUPERUSER_USERNAME", "admin")
+        username = os.environ.get("DJANGO_SUPERUSER_USERNAME", "admin")
         password = os.environ.get("DJANGO_SUPERUSER_PASSWORD", "12345")
 
         # Проверка, что переменные окружения заданы
-        if not email or not password:
+        if not username or not password:
             self.stdout.write(
                 self.style.ERROR(
                     "Ошибка: DJANGO_SUPERUSER_USERNAME и DJANGO_SUPERUSER_PASSWORD должны быть установлены"
@@ -44,13 +44,13 @@ class Command(BaseCommand):
         try:
             # Создание суперпользователя
             user = User.objects.create_superuser(
-                email=email,
+                username=username,
                 password=password,
             )
             self.stdout.write(
-                self.style.SUCCESS(f'Суперпользователь "{email}" успешно создан')
+                self.style.SUCCESS(f'Суперпользователь "{username}" успешно создан')
             )
-            logger.info(f'Суперпользователь "{email}" успешно создан')
+            logger.info(f'Суперпользователь "{username}" успешно создан')
         except IntegrityError as e:
             self.stdout.write(
                 self.style.ERROR(f"Ошибка при создании суперпользователя: {e}")
