@@ -1,5 +1,5 @@
 __all__ = (
-    "AUTH_PASSWORD_VALIDATORS",
+    # "AUTH_PASSWORD_VALIDATORS",
     "AUTH_USER_MODEL",
 )
 

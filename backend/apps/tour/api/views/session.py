@@ -15,7 +15,7 @@ from ..serializers import (
     TouristRegisterSerializer,
 )
 
-__all__ = ("TouristJoinView", "TouristRegisterView", "TouristSessionStatusView")
+__all__ = ("TouristJoinView", "TouristRegisterView", "TouristSessionStatusView", "TouristLeaveView")
 
 
 class TouristRegisterView(APIView):
@@ -183,3 +183,59 @@ class TouristSessionStatusView(APIView):
             "session_id": tourist.tour_session.pk,
             "status": tourist.tour_session.status,
         })
+
+
+class TouristLeaveView(APIView):
+    """
+    POST /api/v1/tour/leave/
+
+    Турист нажал "назад" или вышел из тура — отвязывает от сессии.
+    Body: {"device_token": 42}
+    """
+
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        device_token = request.data.get("device_token")
+        if not device_token:
+            return Response({"error": "device_token обязателен"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            tourist = TouristSession.objects.select_related("tour_session").get(
+                device_token=device_token, is_active=True
+            )
+        except TouristSession.DoesNotExist:
+            return Response({"error": "Токен не найден"}, status=status.HTTP_404_NOT_FOUND)
+
+        session = tourist.tour_session
+        if not session:
+            return Response({"status": "ok"})
+
+        session_id = session.pk
+
+        # Отвязываем туриста от сессии
+        tourist.tour_session = None
+        tourist.tour_number = None
+        tourist.joined_at = None
+        tourist.save(update_fields=["tour_session", "tour_number", "joined_at"])
+
+        # Обновляем tourist_count
+        session.tourist_count = TouristSession.objects.filter(
+            tour_session=session, is_active=True
+        ).count()
+        session.save(update_fields=["tourist_count"])
+
+        # Уведомляем WS группу
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            f"tour_{session_id}",
+            {
+                "type": "tourist.left",
+                "tourist_count": session.tourist_count,
+                "tourist_id": tourist.pk,
+                "device_token": str(tourist.device_token),
+            },
+        )
+
+        return Response({"status": "ok"})

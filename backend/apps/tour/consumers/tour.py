@@ -52,7 +52,22 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         self.is_specialist = params.get("role") == "specialist"
         self.device_token = params.get("device_token")
 
-        if not self.is_specialist:
+        if self.is_specialist:
+            # Токен из query (?token=...) или из заголовка (Authorization: Bearer ...)
+            token = params.get("token")
+            if not token:
+                headers = dict(self.scope.get("headers", []))
+                auth = headers.get(b"authorization", b"").decode()
+                if auth.lower().startswith("bearer "):
+                    token = auth[7:]
+            if not token:
+                await self.close(code=4003)
+                return
+            specialist = await self._authenticate_specialist(token, session)
+            if not specialist:
+                await self.close(code=4003)
+                return
+        else:
             if not self.device_token:
                 await self.close(code=4001)
                 return
@@ -72,7 +87,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
         # Отправляем текущее состояние
         state = await self._get_session_state()
-        await self.send_json({"type": "session_state", **state})
+        await self.send_json({"type": "tour_info", **state})
 
         # Специалист переподключается к активному туру — перезапускаем таймер
         if self.is_specialist and session.status == TourSession.Status.IN_PROGRESS:
@@ -92,7 +107,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                     {"type": "tourist.left", "tourist_count": count},
                 )
                 if hasattr(self, "personal_group"):
-                    await self.channel_layer.group_discard(self.personal_group, self.channel_name)
+                    await self.channel_layer.group_discard(
+                        self.personal_group, self.channel_name
+                    )
 
             await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
@@ -109,7 +126,8 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             if result:
                 duration, state = result
                 await self.channel_layer.group_send(
-                    self.group_name, {"type": "tour.started", **state},
+                    self.group_name,
+                    {"type": "tour.info", **state},
                 )
                 self._start_section_timer(duration)
 
@@ -119,12 +137,14 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             if result is None:
                 await self._do_finish_tour()
                 await self.channel_layer.group_send(
-                    self.group_name, {"type": "tour.finished"},
+                    self.group_name,
+                    {"type": "tour.finished"},
                 )
             else:
                 duration, state = result
                 await self.channel_layer.group_send(
-                    self.group_name, {"type": "section.changed", **state},
+                    self.group_name,
+                    {"type": "tour.info", **state},
                 )
                 self._start_section_timer(duration)
 
@@ -134,24 +154,27 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             if result:
                 duration, state = result
                 await self.channel_layer.group_send(
-                    self.group_name, {"type": "section.changed", **state},
+                    self.group_name,
+                    {"type": "tour.info", **state},
                 )
                 self._start_section_timer(duration)
 
         elif action == "set_break":
-            remaining = await self._do_set_break(is_technical=False)
+            await self._do_set_break(is_technical=False)
             self._cancel_timer()
+            state = await self._get_session_state()
             await self.channel_layer.group_send(
                 self.group_name,
-                {"type": "tour.on_break", "remaining_seconds": remaining, "is_technical": False},
+                {"type": "tour.info", **state},
             )
 
         elif action == "technical_stop":
-            remaining = await self._do_set_break(is_technical=True)
+            await self._do_set_break(is_technical=True)
             self._cancel_timer()
+            state = await self._get_session_state()
             await self.channel_layer.group_send(
                 self.group_name,
-                {"type": "tour.on_break", "remaining_seconds": remaining, "is_technical": True},
+                {"type": "tour.info", **state},
             )
 
         elif action == "resume_tour":
@@ -159,7 +182,8 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             if result:
                 remaining, state = result
                 await self.channel_layer.group_send(
-                    self.group_name, {"type": "tour.resumed", **state},
+                    self.group_name,
+                    {"type": "tour.info", **state},
                 )
                 self._start_section_timer(remaining)
 
@@ -167,24 +191,32 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             self._cancel_timer()
             await self._do_finish_tour()
             await self.channel_layer.group_send(
-                self.group_name, {"type": "tour.finished"},
+                self.group_name,
+                {"type": "tour.finished"},
             )
 
         elif action == "adjust_time":
             target = content.get("target")  # "section" or "break"
-            delta = content.get("seconds", 0)
+            delta = content.get("delta", 60)  # +60 or -60
             result = await self._do_adjust_time(target, delta)
             if result:
                 state = result
                 await self.channel_layer.group_send(
-                    self.group_name, {"type": "section.changed", **state},
+                    self.group_name,
+                    {"type": "tour.info", **state},
                 )
-                # Restart timer if in progress
                 if state.get("timer"):
                     remaining = state["timer"].get("section_remaining_seconds", 0)
-                    if remaining > 0 and state.get("status") == TourSession.Status.IN_PROGRESS:
+                    if (
+                        remaining > 0
+                        and state.get("status") == TourSession.Status.IN_PROGRESS
+                    ):
                         self._cancel_timer()
                         self._start_section_timer(remaining)
+
+        elif action == "get_tour_info":
+            info = await self._get_tour_info()
+            await self.send_json({"type": "tour_info", **info})
 
         elif action == "kick_tourist":
             tourist_id = content.get("tourist_id")
@@ -217,12 +249,15 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         if break_secs and break_secs > 0:
             # Enter auto-break
             await self._do_auto_break(break_secs)
+            state = await self._get_session_state()
             await self.channel_layer.group_send(
                 self.group_name,
-                {"type": "tour.on_break", "remaining_seconds": break_secs, "is_auto": True},
+                {"type": "tour.info", **state},
             )
             # Wait for break to end, then advance
-            self._timer_task = asyncio.ensure_future(self._break_then_advance(break_secs))
+            self._timer_task = asyncio.ensure_future(
+                self._break_then_advance(break_secs)
+            )
         else:
             # No break — advance immediately
             await self._do_advance_or_finish()
@@ -239,12 +274,14 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         if result is None:
             await self._do_finish_tour()
             await self.channel_layer.group_send(
-                self.group_name, {"type": "tour.finished"},
+                self.group_name,
+                {"type": "tour.finished"},
             )
         else:
             duration, state = result
             await self.channel_layer.group_send(
-                self.group_name, {"type": "section.changed", **state},
+                self.group_name,
+                {"type": "tour.info", **state},
             )
             self._start_section_timer(duration)
 
@@ -259,55 +296,48 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
         personal_group = f"tourist_{device_token}"
         await self.channel_layer.group_send(
-            personal_group, {"type": "tourist.kicked"},
+            personal_group,
+            {"type": "tourist.kicked"},
         )
 
         await self.channel_layer.group_send(
             self.group_name,
-            {"type": "tourist.kicked.broadcast", "tourist_id": tourist_id, "tourist_count": tourist_count},
+            {
+                "type": "tourist.kicked.broadcast",
+                "tourist_id": tourist_id,
+                "tourist_count": tourist_count,
+            },
         )
 
     # ── Group message handlers ────────────────────────────────
 
     async def tourist_joined(self, event):
         tourists = await self._get_tourists_list()
-        await self.send_json({
-            "type": "tourist_joined",
-            "tourist_count": event["tourist_count"],
-            "tourist_id": event.get("tourist_id"),
-            "device_token": event.get("device_token"),
-            "tourists": tourists,
-        })
+        await self.send_json(
+            {
+                "type": "tourist_joined",
+                "tourist_count": event["tourist_count"],
+                "tourist_id": event.get("tourist_id"),
+                "device_token": event.get("device_token"),
+                "tourists": tourists,
+            }
+        )
 
     async def tourist_left(self, event):
         tourists = await self._get_tourists_list()
-        await self.send_json({
-            "type": "tourist_left",
-            "tourist_count": event["tourist_count"],
-            "tourists": tourists,
-        })
-
-    async def tour_started(self, event):
         await self.send_json(
-            {k: v for k, v in event.items() if k != "type"} | {"type": "tour_started"}
+            {
+                "type": "tourist_left",
+                "tourist_count": event["tourist_count"],
+                "tourist_id": event.get("tourist_id"),
+                "device_token": event.get("device_token"),
+                "tourists": tourists,
+            }
         )
 
-    async def section_changed(self, event):
+    async def tour_info(self, event):
         await self.send_json(
-            {k: v for k, v in event.items() if k != "type"} | {"type": "section_changed"}
-        )
-
-    async def tour_on_break(self, event):
-        await self.send_json({
-            "type": "tour_on_break",
-            "remaining_seconds": event.get("remaining_seconds"),
-            "is_technical": event.get("is_technical", False),
-            "is_auto": event.get("is_auto", False),
-        })
-
-    async def tour_resumed(self, event):
-        await self.send_json(
-            {k: v for k, v in event.items() if k != "type"} | {"type": "tour_resumed"}
+            {k: v for k, v in event.items() if k != "type"} | {"type": "tour_info"}
         )
 
     async def tour_finished(self, event):
@@ -319,12 +349,14 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
     async def tourist_kicked_broadcast(self, event):
         tourists = await self._get_tourists_list()
-        await self.send_json({
-            "type": "tourist_kicked",
-            "tourist_id": event["tourist_id"],
-            "tourist_count": event["tourist_count"],
-            "tourists": tourists,
-        })
+        await self.send_json(
+            {
+                "type": "tourist_kicked",
+                "tourist_id": event["tourist_id"],
+                "tourist_count": event["tourist_count"],
+                "tourists": tourists,
+            }
+        )
 
     # ── Shared state builder (sync, called inside @database_sync_to_async) ──
 
@@ -345,19 +377,28 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                     "name": sec.hall.name,
                 },
             }
-            exhibits = list(
-                sec.exhibits.filter(is_active=True)
-                .order_by("order", "title")
-                .values("id", "title", "description", "video", "thumbnail", "order")
-            )
-            for ex in exhibits:
-                if ex.get("video"):
-                    ex["video"] = f"{MEDIA_URL}{ex['video']}"
-                if ex.get("thumbnail"):
-                    ex["thumbnail"] = f"{MEDIA_URL}{ex['thumbnail']}"
+            exhibits = []
+            for ex in sec.exhibits.filter(is_active=True).order_by("order", "title"):
+                video = ex.video
+                thumbnail = ex.thumbnail
+                exhibits.append(
+                    {
+                        "id": ex.id,
+                        "title": str(ex.title) if ex.title else "",
+                        "description": str(ex.description) if ex.description else "",
+                        "video": f"{MEDIA_URL}{video.name}" if video else None,
+                        "thumbnail": (
+                            f"{MEDIA_URL}{thumbnail.name}" if thumbnail else None
+                        ),
+                        "order": ex.order,
+                    }
+                )
             section_data["exhibits"] = exhibits
 
-            if session.status == TourSession.Status.IN_PROGRESS and session.section_started_at:
+            if (
+                session.status == TourSession.Status.IN_PROGRESS
+                and session.section_started_at
+            ):
                 now = timezone.now()
                 elapsed = (now - session.section_started_at).total_seconds()
                 section_total = sec.duration_minutes * 60
@@ -366,17 +407,25 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                     "section_remaining_seconds": int(remaining),
                     "section_total_seconds": section_total,
                 }
-            elif session.status == TourSession.Status.ON_BREAK and session.paused_remaining_seconds is not None:
+            elif (
+                session.status == TourSession.Status.ON_BREAK
+                and session.paused_remaining_seconds is not None
+            ):
                 timer_data = {
                     "section_remaining_seconds": session.paused_remaining_seconds,
                     "section_total_seconds": sec.duration_minutes * 60,
                 }
 
         tourists = list(
-            TouristSession.objects.filter(
-                tour_session=session, is_active=True
-            ).order_by("tour_number").values(
-                "id", "device_token", "tour_number", "device_name", "ip_address", "joined_at"
+            TouristSession.objects.filter(tour_session=session, is_active=True)
+            .order_by("tour_number")
+            .values(
+                "id",
+                "device_token",
+                "tour_number",
+                "device_name",
+                "ip_address",
+                "joined_at",
             )
         )
         for t in tourists:
@@ -385,6 +434,35 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                 t["joined_at"] = t["joined_at"].isoformat()
 
         total_remaining = self._calc_total_remaining(session, timer_data)
+
+        # Все разделы для расчётов
+        from exhibit.models import Section
+
+        all_sections_qs = list(
+            Section.objects.filter(is_active=True)
+            .order_by("hall__order", "order")
+            .values_list("id", "duration_minutes", "break_duration_minutes")
+        )
+        total_sections_count = len(all_sections_qs)
+        total_tour_seconds = sum((dur + brk) * 60 for _, dur, brk in all_sections_qs)
+
+        # Разделы текущего зала (маршрут)
+        hall_sections = []
+        if section_data:
+            hall_id = section_data["hall"]["id"]
+            for sec_obj in (
+                Section.objects.filter(hall_id=hall_id, is_active=True)
+                .order_by("order")
+                .values("id", "name", "duration_minutes", "break_duration_minutes")
+            ):
+                hall_sections.append(sec_obj)
+
+        is_auto_break = (
+            session.status == TourSession.Status.ON_BREAK
+            and not session.is_technical_stop
+            and session.paused_remaining_seconds is None
+            and session.break_remaining_seconds
+        )
 
         return {
             "session_id": session.pk,
@@ -399,7 +477,14 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             "current_section": section_data,
             "timer": timer_data,
             "total_remaining_seconds": total_remaining,
+            "total_tour_seconds": total_tour_seconds,
+            "total_sections_count": total_sections_count,
+            "hall_sections": hall_sections,
             "is_technical_stop": session.is_technical_stop,
+            "is_auto_break": bool(is_auto_break),
+            "break_remaining_seconds": (
+                session.break_remaining_seconds if is_auto_break else None
+            ),
         }
 
     def _calc_total_remaining(self, session, timer_data):
@@ -441,6 +526,26 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             return None
 
     @database_sync_to_async
+    def _authenticate_specialist(self, token, session):
+        """Проверяет JWT токен и что специалист владеет этой сессией."""
+        from rest_framework_simplejwt.tokens import AccessToken
+        from rest_framework_simplejwt.exceptions import TokenError
+        from django.contrib.auth import get_user_model
+
+        User = get_user_model()
+        try:
+            access = AccessToken(token)
+            user = User.objects.select_related("specialist_profile").get(
+                pk=access["user_id"]
+            )
+            specialist = user.specialist_profile
+            if session.specialist_id != specialist.pk:
+                return None
+            return specialist
+        except (TokenError, User.DoesNotExist, Exception):
+            return None
+
+    @database_sync_to_async
     def _get_tourist_session(self):
         try:
             return TouristSession.objects.get(
@@ -461,8 +566,15 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         tourists = list(
             TouristSession.objects.filter(
                 tour_session_id=self.session_id, is_active=True
-            ).order_by("tour_number").values(
-                "id", "device_token", "tour_number", "device_name", "ip_address", "joined_at"
+            )
+            .order_by("tour_number")
+            .values(
+                "id",
+                "device_token",
+                "tour_number",
+                "device_name",
+                "ip_address",
+                "joined_at",
             )
         )
         for t in tourists:
@@ -482,8 +594,73 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         return count
 
     @database_sync_to_async
+    def _get_tour_info(self):
+        from exhibit.models import Section
+
+        session = TourSession.objects.get(pk=self.session_id)
+
+        all_sections = list(
+            Section.objects.filter(is_active=True)
+            .order_by("hall__order", "order")
+            .select_related("hall")
+        )
+
+        total_sections_count = len(all_sections)
+        total_tour_seconds = sum(
+            (s.duration_minutes + s.break_duration_minutes) * 60 for s in all_sections
+        )
+
+        current_section = all_sections[0] if all_sections else None
+
+        current_hall = current_section.hall if current_section else None
+
+        hall_sections = []
+        if current_hall:
+            for s in all_sections:
+                if s.hall_id == current_hall.id:
+                    hall_sections.append(
+                        {
+                            "id": s.id,
+                            "name": str(s.name),
+                            "duration_minutes": s.duration_minutes,
+                            "break_duration_minutes": s.break_duration_minutes,
+                        }
+                    )
+
+        tourist_count = TouristSession.objects.filter(
+            tour_session=session, is_active=True
+        ).count()
+
+        return {
+            "tourist_count": tourist_count,
+            "total_sections_count": total_sections_count,
+            "total_tour_seconds": total_tour_seconds,
+            "current_section": (
+                {
+                    "id": current_section.id,
+                    "name": str(current_section.name),
+                    "duration_minutes": current_section.duration_minutes,
+                    "break_duration_minutes": current_section.break_duration_minutes,
+                }
+                if current_section
+                else None
+            ),
+            "current_hall": (
+                {
+                    "id": current_hall.id,
+                    "name": str(current_hall.name),
+                }
+                if current_hall
+                else None
+            ),
+            "hall_sections": hall_sections,
+        }
+
+    @database_sync_to_async
     def _calculate_remaining_seconds(self):
-        session = TourSession.objects.select_related("current_section").get(pk=self.session_id)
+        session = TourSession.objects.select_related("current_section").get(
+            pk=self.session_id
+        )
         if not session.section_started_at or not session.current_section:
             return None
         elapsed = (timezone.now() - session.section_started_at).total_seconds()
@@ -492,7 +669,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def _get_current_break_duration(self):
-        session = TourSession.objects.select_related("current_section").get(pk=self.session_id)
+        session = TourSession.objects.select_related("current_section").get(
+            pk=self.session_id
+        )
         if session.current_section:
             return session.current_section.break_duration_minutes * 60
         return 0
@@ -503,9 +682,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
     def _do_start_tour(self):
         from exhibit.models import Section
 
-        session = TourSession.objects.select_related(
-            "specialist__user"
-        ).get(pk=self.session_id)
+        session = TourSession.objects.select_related("specialist__user").get(
+            pk=self.session_id
+        )
 
         first_section = (
             Section.objects.filter(is_active=True)
@@ -523,10 +702,16 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         session.section_started_at = now
         session.paused_remaining_seconds = None
         session.is_technical_stop = False
-        session.save(update_fields=[
-            "status", "started_at", "current_section",
-            "section_started_at", "paused_remaining_seconds", "is_technical_stop",
-        ])
+        session.save(
+            update_fields=[
+                "status",
+                "started_at",
+                "current_section",
+                "section_started_at",
+                "paused_remaining_seconds",
+                "is_technical_stop",
+            ]
+        )
 
         # Re-fetch with section hall for state builder
         session = TourSession.objects.select_related(
@@ -572,10 +757,15 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         session.status = TourSession.Status.IN_PROGRESS
         session.paused_remaining_seconds = None
         session.is_technical_stop = False
-        session.save(update_fields=[
-            "current_section", "section_started_at", "status",
-            "paused_remaining_seconds", "is_technical_stop",
-        ])
+        session.save(
+            update_fields=[
+                "current_section",
+                "section_started_at",
+                "status",
+                "paused_remaining_seconds",
+                "is_technical_stop",
+            ]
+        )
 
         session = TourSession.objects.select_related(
             "specialist__user", "current_section__hall"
@@ -617,10 +807,15 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         session.status = TourSession.Status.IN_PROGRESS
         session.paused_remaining_seconds = None
         session.is_technical_stop = False
-        session.save(update_fields=[
-            "current_section", "section_started_at", "status",
-            "paused_remaining_seconds", "is_technical_stop",
-        ])
+        session.save(
+            update_fields=[
+                "current_section",
+                "section_started_at",
+                "status",
+                "paused_remaining_seconds",
+                "is_technical_stop",
+            ]
+        )
 
         session = TourSession.objects.select_related(
             "specialist__user", "current_section__hall"
@@ -632,7 +827,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def _do_set_break(self, is_technical=False):
-        session = TourSession.objects.select_related("current_section").get(pk=self.session_id)
+        session = TourSession.objects.select_related("current_section").get(
+            pk=self.session_id
+        )
         now = timezone.now()
 
         remaining = 0
@@ -644,7 +841,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         session.status = TourSession.Status.ON_BREAK
         session.paused_remaining_seconds = remaining
         session.is_technical_stop = is_technical
-        session.save(update_fields=["status", "paused_remaining_seconds", "is_technical_stop"])
+        session.save(
+            update_fields=["status", "paused_remaining_seconds", "is_technical_stop"]
+        )
         return remaining
 
     @database_sync_to_async
@@ -653,7 +852,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         session.status = TourSession.Status.ON_BREAK
         session.break_remaining_seconds = break_secs
         session.is_technical_stop = False
-        session.save(update_fields=["status", "break_remaining_seconds", "is_technical_stop"])
+        session.save(
+            update_fields=["status", "break_remaining_seconds", "is_technical_stop"]
+        )
 
     @database_sync_to_async
     def _do_resume_tour(self):
@@ -664,15 +865,24 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
         now = timezone.now()
         session.status = TourSession.Status.IN_PROGRESS
-        elapsed = (session.current_section.duration_minutes * 60 - remaining) if session.current_section else 0
+        elapsed = (
+            (session.current_section.duration_minutes * 60 - remaining)
+            if session.current_section
+            else 0
+        )
         session.section_started_at = now - timedelta(seconds=elapsed)
         session.paused_remaining_seconds = None
         session.break_remaining_seconds = None
         session.is_technical_stop = False
-        session.save(update_fields=[
-            "status", "section_started_at", "paused_remaining_seconds",
-            "break_remaining_seconds", "is_technical_stop",
-        ])
+        session.save(
+            update_fields=[
+                "status",
+                "section_started_at",
+                "paused_remaining_seconds",
+                "break_remaining_seconds",
+                "is_technical_stop",
+            ]
+        )
 
         state = self._build_state_dict(session)
         return remaining, state
@@ -697,7 +907,10 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             sec.save(update_fields=["duration_minutes"])
 
             # Recalculate section_started_at to adjust remaining time
-            if session.status == TourSession.Status.IN_PROGRESS and session.section_started_at:
+            if (
+                session.status == TourSession.Status.IN_PROGRESS
+                and session.section_started_at
+            ):
                 now = timezone.now()
                 elapsed = (now - session.section_started_at).total_seconds()
                 new_total = new_dur * 60

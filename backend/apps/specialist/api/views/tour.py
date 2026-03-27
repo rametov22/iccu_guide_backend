@@ -208,19 +208,28 @@ class TourSessionTouristKickView(APIView):
         ).count()
         session.save(update_fields=["tourist_count"])
 
-        # Отправляем уведомление через channel layer
         from channels.layers import get_channel_layer
         from asgiref.sync import async_to_sync
 
         channel_layer = get_channel_layer()
-        group_name = f"tour_{pk}"
 
+        # Уведомляем туриста лично — его WS закроется
         async_to_sync(channel_layer.group_send)(
-            group_name,
+            f"tourist_{device_token}",
             {
                 "type": "tourist.kicked",
                 "tourist_id": tourist_id,
-                "device_token": str(tourist.device_token),
+                "device_token": str(device_token),
+            },
+        )
+
+        # Уведомляем группу тура (специалиста) об обновлённом списке
+        async_to_sync(channel_layer.group_send)(
+            f"tour_{pk}",
+            {
+                "type": "tourist.kicked.broadcast",
+                "tourist_id": tourist_id,
+                "device_token": str(device_token),
                 "tourist_count": session.tourist_count,
             },
         )

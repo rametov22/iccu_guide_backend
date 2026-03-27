@@ -192,6 +192,24 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Segoe UI',system-
 .btn-tech:hover{background:#2e2860;}
 .finished-notice{text-align:center;padding:14px;color:var(--muted);font-size:.88rem;}
 
+/* ─── TOUR INFO ─── */
+#s-tour-info{flex-direction:column;}
+.ti-topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);background:rgba(17,19,24,.93);backdrop-filter:blur(10px);position:sticky;top:0;z-index:20;}
+.ti-body{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:28px 28px;max-width:1100px;margin:0 auto;width:100%;}
+.ti-stats{display:flex;flex-direction:column;gap:14px;}
+.ti-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;}
+.ti-card-label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+.ti-card-value{font-size:1.5rem;font-weight:700;line-height:1.2;}
+.ti-card-sub{font-size:.78rem;color:var(--muted);margin-top:4px;}
+.ti-stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.ti-stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;}
+.ti-stat .n{font-size:1.8rem;font-weight:700;color:var(--gold);}
+.ti-stat .l{font-size:.72rem;color:var(--muted);margin-top:4px;}
+.ti-route{display:flex;flex-direction:column;gap:0;}
+.ti-route-header{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:0 0 10px;}
+.ti-route-scroll{flex:1;overflow-y:auto;max-height:calc(100vh - 280px);background:var(--card);border:1px solid var(--border);border-radius:var(--radius);}
+.ti-footer{padding:16px 28px;max-width:1100px;margin:0 auto;width:100%;}
+
 /* Tourists panel */
 .tp-overlay{position:fixed;inset:0;z-index:60;display:none;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);}
 .tp-overlay.open{display:flex;align-items:stretch;justify-content:flex-end;}
@@ -284,7 +302,7 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Segoe UI',system-
   </div>
 
   <div class="lobby-footer">
-    <button class="btn-big btn-big-gold" onclick="enterDashboard()">Перейти к панели управления →</button>
+    <button class="btn-big btn-big-gold" onclick="enterTourInfo()">Продолжить →</button>
   </div>
 </div>
 
@@ -298,6 +316,44 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Segoe UI',system-
     <div class="field" style="text-align:left"><label>Номер устройства</label>
       <input id="in-token" type="number" min="1" max="600" placeholder="Номер устройства (1-600)" /></div>
     <button class="btn-gold" onclick="doAddTourist()">Добавить</button>
+  </div>
+</div>
+
+<!-- ═══ TOUR INFO ═══ -->
+<div id="s-tour-info" class="screen" style="flex-direction:column">
+  <div class="ti-topbar">
+    <button class="btn-sm" onclick="go('s-lobby')">← Назад</button>
+    <div class="topbar-logo"><div class="dot">ICCU</div><span>Информация о туре</span></div>
+    <span id="ti-wsdot" class="ws-dot ws-no"></span>
+  </div>
+  <div class="ti-body">
+    <!-- LEFT: stats + hall/section -->
+    <div class="ti-stats">
+      <div class="ti-card">
+        <div class="ti-card-label">Первый зал</div>
+        <div class="ti-card-value" id="ti-hall">—</div>
+      </div>
+      <div class="ti-card">
+        <div class="ti-card-label">Первый раздел</div>
+        <div class="ti-card-value" id="ti-section">—</div>
+        <div class="ti-card-sub" id="ti-section-dur"></div>
+      </div>
+      <div class="ti-stats-row">
+        <div class="ti-stat"><div class="n" id="ti-cnt">0</div><div class="l">Участников</div></div>
+        <div class="ti-stat"><div class="n" id="ti-seccnt">—</div><div class="l">Разделов</div></div>
+        <div class="ti-stat"><div class="n" id="ti-totaltime" style="font-size:1.1rem">—</div><div class="l">Общее время</div></div>
+      </div>
+    </div>
+    <!-- RIGHT: hall route -->
+    <div class="ti-route">
+      <div class="ti-route-header">Маршрут текущего зала</div>
+      <div class="ti-route-scroll" id="ti-route-list">
+        <div style="padding:32px;text-align:center;color:var(--muted);font-size:.82rem">Загрузка...</div>
+      </div>
+    </div>
+  </div>
+  <div class="ti-footer">
+    <button class="btn-big btn-big-gold" onclick="doStartTour()">▶ Начать тур</button>
   </div>
 </div>
 
@@ -375,7 +431,7 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Segoe UI',system-
 <script>
 /* ══ STATE ══════════════════════════════════════════ */
 let JWT = null, SESSION_ID = null, ws = null;
-let tourists = [], sections = [];
+let tourists = [], sections = [], hallSections = [];
 let SPEC_NUMBER = null;
 let secRemain = 0, secTotal = 1;
 let timerIv = null, tourStartedAt = null, tourTimerIv = null;
@@ -386,7 +442,7 @@ let isOnBreak = false, breakIsTechnical = false, breakIsAuto = false;
 
 /* ══ UTILS ══════════════════════════════════════════ */
 const API = p => `/ru/api/v1${p}`;
-const WSURL = sid => `ws://${location.host}/ws/tour/${sid}/?role=specialist`;
+const WSURL = sid => `ws://${location.host}/ws/tour/${sid}/?role=specialist&token=${JWT}`;
 
 async function req(method, path, body=null, auth=true) {
   const h = {'Content-Type':'application/json'};
@@ -453,7 +509,6 @@ async function doLogin() {
     SESSION_ID = r.data.session_id;
     if (!SESSION_ID) { toast('Сессия не создана — возможно пользователь не специалист','error'); return; }
     toast('Вход выполнен','success');
-    await loadSections();
     connectWS();
     go('s-lobby');
   } else {
@@ -472,41 +527,6 @@ async function doLogout() {
   toast('Выход выполнен','info');
 }
 
-/* ══ SECTIONS ═══════════════════════════════════════ */
-async function loadSections() {
-  const r = await req('GET','/exhibits/halls/');
-  if (!r.ok) { toast('Ошибка загрузки разделов','error'); return; }
-  sections = [];
-  (r.data||[]).forEach(hall => {
-    (hall.sections||[]).forEach(sec => {
-      sections.push({...sec, hall_name: hall.name||''});
-    });
-  });
-  const total = sections.reduce((a,s)=>a+(s.duration_minutes||0)*60 + (s.break_duration_minutes||0)*60, 0);
-  document.getElementById('st-sections').textContent = sections.length;
-  document.getElementById('st-totaltime').textContent = fmt(total);
-  document.getElementById('route-dur').textContent = fmtHMS(total);
-  renderRoute();
-}
-
-function renderRoute(activeSid=null) {
-  const el = document.getElementById('route-list');
-  if (!sections.length) { el.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted);font-size:.82rem">Разделы не найдены</div>'; return; }
-  const activeIdx = sections.findIndex(s=>s.id===activeSid);
-  el.innerHTML = sections.map((s,i) => {
-    const isActive = s.id === activeSid;
-    const isDone = activeIdx > -1 && i < activeIdx;
-    const cls = isActive?'r-active':isDone?'r-done':'';
-    return `<div class="route-item ${cls}" id="ri${s.id}">
-      <div class="r-num">${pad(i+1)}</div>
-      <div class="r-info">
-        <div class="r-hall">${s.hall_name}</div>
-        <div class="r-name">${s.name}</div>
-      </div>
-      <div class="r-dur">${fmt((s.duration_minutes||0)*60)}${s.break_duration_minutes ? '<br><span style="color:var(--gold);font-size:.65rem">+' + s.break_duration_minutes + 'м перерыв</span>' : ''}</div>
-    </div>`;
-  }).join('');
-}
 
 /* ══ EXHIBITS ═══════════════════════════════════════ */
 function renderExhibits(exhibits) {
@@ -555,89 +575,23 @@ function send(obj) {
 /* ══ MESSAGE HANDLER ════════════════════════════════ */
 function onMsg(d) {
   const t = d.type;
-  if (['session_state','tour_started','section_changed','tour_resumed'].includes(t)) { stopBreakTimer(); applyState(d); }
-  else if (t==='tour_on_break')  { onBreak(d); }
+  setDot('ws-ok');
+  if (t==='tour_info')           { applyTourInfo(d); }
   else if (t==='tour_finished')  { setStatus('finished'); showCtrl('finished'); stopTimer(); stopBreakTimer(); stopTourTimer(); document.getElementById('dh-timer').textContent='00:00'; toast('Тур завершён!','success'); }
   else if (t==='tourist_joined') { if(d.tourists) setTourists(d.tourists); else updCount(d.tourist_count); toast('Турист подключился','info'); }
   else if (t==='tourist_left')   { if(d.tourists) setTourists(d.tourists); else updCount(d.tourist_count); }
   else if (t==='tourist_kicked') { if(d.tourists) setTourists(d.tourists); else updCount(d.tourist_count); toast('Турист отключён','info'); }
 }
 
-function onBreak(d) {
-  setStatus('on_break');
-  stopTimer();
-  breakIsTechnical = !!d.is_technical;
-  breakIsAuto = !!d.is_auto;
-  isOnBreak = true;
-  if (breakIsTechnical) {
-    // Technical stop — paused section timer, show remaining section time
-    if (d.remaining_seconds != null) { secRemain = d.remaining_seconds; updTimer(); }
-    showCtrl('break_technical');
-    toast('Техническая остановка','info');
-  } else if (breakIsAuto) {
-    // Auto break between sections — countdown break timer
-    breakRemain = d.remaining_seconds || 0;
-    startBreakTimer();
-    showCtrl('break_auto');
-    toast('Перерыв между разделами','info');
-  } else {
-    // Manual break — paused section timer
-    if (d.remaining_seconds != null) { secRemain = d.remaining_seconds; updTimer(); }
-    showCtrl('break_manual');
-    toast('Перерыв','info');
-  }
-}
-
-function applyState(d) {
-  if (d.specialist?.number) SPEC_NUMBER = d.specialist.number;
-  setStatus(d.status);
-  isOnBreak = false;
-  const sec = d.current_section;
-  document.getElementById('dh-hall').textContent = sec?.hall?.name||'—';
-  document.getElementById('dh-sec').textContent  = sec?.name||'—';
-
-  if (sec) { renderRoute(sec.id); scrollRoute(sec.id); renderExhibits(sec.exhibits||[]); }
-  else { renderExhibits([]); }
-
-  const timer = d.timer;
-  if (timer) {
-    secRemain = timer.section_remaining_seconds||0;
-    secTotal  = timer.section_total_seconds||1;
-    document.getElementById('sec-total').textContent = fmt(secTotal);
-    startTimer();
-  } else { stopTimer(); }
-
-  if (d.tourists) setTourists(d.tourists);
-  else if (d.tourist_count!=null) updCount(d.tourist_count);
-
-  if (d.status === 'on_break') {
-    // Reconnect to existing break — determine type
-    if (d.is_technical_stop) {
-      showCtrl('break_technical');
-    } else if (d.timer && d.timer.section_remaining_seconds != null) {
-      // Has paused remaining — manual or technical
-      showCtrl('break_manual');
-    } else {
-      showCtrl('break_manual');
-    }
-  } else {
-    const cmap = {waiting:'waiting',in_progress:'active',finished:'finished'};
-    showCtrl(cmap[d.status]||'waiting');
-  }
-
-  if (d.status==='in_progress' && !tourTimerIv) startTourTimer();
-}
 
 /* ══ CONTROLS ═══════════════════════════════════════ */
 function showCtrl(state) {
   const el = document.getElementById('ctrl-block');
   const adjustRow = (target, label) => `
     <div class="btn-adjust-row">
-      <button class="btn-adj" onclick="send({action:'adjust_time',target:'${target}',seconds:-60})">−1</button>
-      <button class="btn-adj" onclick="send({action:'adjust_time',target:'${target}',seconds:-300})">−5</button>
+      <button class="btn-adj" onclick="send({action:'adjust_time',target:'${target}',delta:-60})">−1м</button>
       <span class="adj-label">${label}</span>
-      <button class="btn-adj" onclick="send({action:'adjust_time',target:'${target}',seconds:300})">+5</button>
-      <button class="btn-adj" onclick="send({action:'adjust_time',target:'${target}',seconds:60})">+1</button>
+      <button class="btn-adj" onclick="send({action:'adjust_time',target:'${target}',delta:60})">+1м</button>
     </div>`;
 
   const html = {
@@ -692,6 +646,7 @@ function setStatus(st) {
 
 function setDot(cls) {
   document.getElementById('dh-wsdot').className = `ws-dot ${cls}`;
+  document.getElementById('ti-wsdot').className  = `ws-dot ${cls}`;
 }
 
 /* ══ TOURISTS ═══════════════════════════════════════ */
@@ -792,10 +747,126 @@ function updBreakTimer() {
   document.getElementById('dh-timer').textContent = fmt(breakRemain);
 }
 
-/* ══ ROUTE SCROLL ═══════════════════════════════════ */
-function scrollRoute(sid) {
-  const el = document.getElementById(`ri${sid}`);
-  if (el) el.scrollIntoView({behavior:'smooth',block:'nearest'});
+
+/* ══ TOUR INFO SCREEN ═══════════════════════════════ */
+function enterTourInfo() {
+  if (!ws || ws.readyState!==1) connectWS();
+  send({action:'get_tour_info'});
+  go('s-tour-info');
+}
+
+function applyTourInfo(d) {
+  const status = d.status;
+
+  // ── Обновляем hall_sections для маршрута ──
+  if (d.hall_sections?.length) hallSections = d.hall_sections;
+
+  // ── Общие статы ──
+  if (d.total_sections_count != null) {
+    document.getElementById('st-sections').textContent = d.total_sections_count;
+    document.getElementById('ti-seccnt').textContent   = d.total_sections_count;
+  }
+  if (d.total_tour_seconds != null) {
+    const t = fmtHMS(d.total_tour_seconds);
+    document.getElementById('st-totaltime').textContent = t;
+    document.getElementById('ti-totaltime').textContent = t;
+  }
+  updCount(d.tourist_count ?? 0);
+  if (d.tourists) setTourists(d.tourists);
+
+  // ── Экран tour_info (waiting или первый запуск) ──
+  const sec   = d.current_section;
+  const hall  = sec?.hall || d.current_hall;
+  document.getElementById('ti-hall').textContent    = hall?.name || '—';
+  document.getElementById('ti-section').textContent = sec?.name  || '—';
+  document.getElementById('ti-section-dur').textContent = sec ? `${sec.duration_minutes} мин` : '';
+  renderTiRoute();
+
+  // ── Dashboard ──
+  setStatus(status);
+  const curSec = d.current_section;
+  document.getElementById('dh-hall').textContent = curSec?.hall?.name || hall?.name || '—';
+  document.getElementById('dh-sec').textContent  = curSec?.name || sec?.name || '—';
+
+  if (curSec) { renderRouteFromHallSections(curSec.id); renderExhibits(curSec.exhibits||[]); }
+  else        { renderExhibits([]); }
+
+  stopBreakTimer();
+  isOnBreak = false;
+
+  if (status === 'in_progress') {
+    const timer = d.timer;
+    if (timer) {
+      secRemain = timer.section_remaining_seconds || 0;
+      secTotal  = timer.section_total_seconds || 1;
+      document.getElementById('sec-total').textContent = fmt(secTotal);
+      startTimer();
+    }
+    showCtrl('active');
+    if (!tourTimerIv) startTourTimer();
+
+  } else if (status === 'on_break') {
+    stopTimer();
+    isOnBreak = true;
+    breakIsTechnical = !!d.is_technical_stop;
+    breakIsAuto      = !!d.is_auto_break;
+    if (breakIsAuto) {
+      breakRemain = d.break_remaining_seconds || 0;
+      startBreakTimer();
+      showCtrl('break_auto');
+      toast('Автоперерыв между разделами', 'info');
+    } else if (breakIsTechnical) {
+      if (d.timer) { secRemain = d.timer.section_remaining_seconds || 0; updTimer(); }
+      showCtrl('break_technical');
+      toast('Техническая остановка', 'info');
+    } else {
+      if (d.timer) { secRemain = d.timer.section_remaining_seconds || 0; updTimer(); }
+      showCtrl('break_manual');
+      toast('Перерыв', 'info');
+    }
+
+  } else if (status === 'waiting') {
+    showCtrl('waiting');
+
+  } else if (status === 'finished') {
+    stopTimer(); stopTourTimer();
+    showCtrl('finished');
+    toast('Тур завершён!', 'success');
+  }
+}
+
+function renderTiRoute() {
+  const el = document.getElementById('ti-route-list');
+  if (!hallSections.length) {
+    el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);font-size:.82rem">Загрузка...</div>';
+    return;
+  }
+  el.innerHTML = hallSections.map((s, i) => `
+    <div class="route-item" style="padding:10px 16px">
+      <div class="r-num">${pad(i+1)}</div>
+      <div class="r-info"><div class="r-name">${s.name}</div></div>
+      <div class="r-dur">${fmt(s.duration_minutes*60)}${s.break_duration_minutes?'<br><span style="color:var(--gold);font-size:.65rem">+'+s.break_duration_minutes+'м</span>':''}</div>
+    </div>`).join('');
+}
+
+function renderRouteFromHallSections(activeSid) {
+  const el = document.getElementById('route-list');
+  if (!hallSections.length) { el.innerHTML=''; return; }
+  el.innerHTML = hallSections.map((s, i) => {
+    const isActive = s.id === activeSid;
+    return `<div class="route-item ${isActive?'r-active':''}" id="ri${s.id}">
+      <div class="r-num">${pad(i+1)}</div>
+      <div class="r-info"><div class="r-name">${s.name}</div></div>
+      <div class="r-dur">${fmt(s.duration_minutes*60)}</div>
+    </div>`;
+  }).join('');
+  if (activeSid) { const el2=document.getElementById(`ri${activeSid}`); if(el2) el2.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+}
+
+function doStartTour() {
+  send({action:'start_tour'});
+  showCtrl('waiting');
+  go('s-dashboard');
 }
 
 /* ══ DASHBOARD NAV ══════════════════════════════════ */
