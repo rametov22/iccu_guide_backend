@@ -442,7 +442,8 @@ let isOnBreak = false, breakIsTechnical = false, breakIsAuto = false;
 
 /* ══ UTILS ══════════════════════════════════════════ */
 const API = p => `/ru/api/v1${p}`;
-const WSURL = sid => `ws://${location.host}/ws/tour/${sid}/?role=specialist&token=${JWT}`;
+const WS_PROTO = location.protocol === 'https:' ? 'wss' : 'ws';
+const WSURL = sid => `${WS_PROTO}://${location.host}/ws/tour/${sid}/?role=specialist&token=${JWT}`;
 
 async function req(method, path, body=null, auth=true) {
   const h = {'Content-Type':'application/json'};
