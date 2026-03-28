@@ -779,7 +779,7 @@ function applyTourInfo(d) {
   const hall = d.current_hall;
   document.getElementById('ti-hall').textContent    = hall?.name || '—';
   document.getElementById('ti-section').textContent = sec?.name  || '—';
-  document.getElementById('ti-section-dur').textContent = sec ? `${sec.duration_minutes} мин` : '';
+  document.getElementById('ti-section-dur').textContent = sec ? `${Math.floor(sec.duration_seconds/60)}м ${sec.duration_seconds%60}с` : '';
   renderTiRoute();
 
   // ── Dashboard ──
@@ -843,7 +843,7 @@ function renderTiRoute() {
     <div class="route-item" style="padding:10px 16px">
       <div class="r-num">${pad(i+1)}</div>
       <div class="r-info"><div class="r-name">${s.name}</div></div>
-      <div class="r-dur">${fmt(s.duration_minutes*60)}${s.break_duration_minutes?'<br><span style="color:var(--gold);font-size:.65rem">+'+s.break_duration_minutes+'м</span>':''}</div>
+      <div class="r-dur">${fmt(s.duration_seconds)}${s.break_duration_seconds?'<br><span style="color:var(--gold);font-size:.65rem">+'+fmt(s.break_duration_seconds)+'</span>':''}</div>
     </div>`).join('');
 }
 
@@ -855,7 +855,7 @@ function renderRouteFromHallSections(activeSid) {
     return `<div class="route-item ${isActive?'r-active':''}" id="ri${s.id}">
       <div class="r-num">${pad(i+1)}</div>
       <div class="r-info"><div class="r-name">${s.name}</div></div>
-      <div class="r-dur">${fmt(s.duration_minutes*60)}</div>
+      <div class="r-dur">${fmt(s.duration_seconds)}</div>
     </div>`;
   }).join('');
   if (activeSid) { const el2=document.getElementById(`ri${activeSid}`); if(el2) el2.scrollIntoView({behavior:'smooth',block:'nearest'}); }

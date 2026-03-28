@@ -988,7 +988,7 @@
       <!-- Left: Guide video + info -->
       <div class="guide-panel">
         <div class="guide-video-wrap">
-          <video id="guide-video" autoplay loop muted playsinline>
+          <video id="guide-video" autoplay muted playsinline>
             <source src="" type="video/mp4">
           </video>
           <div id="guide-video-placeholder" class="guide-video-placeholder" style="display:flex">🎙</div>
@@ -1134,6 +1134,8 @@
     selectedRating: 0,
     pollInterval: null,
     lobbyWs: null,
+    guideVideos: [],
+    guideVideoIndex: 0,
   };
 
   const API = '/ru/api/v1';
@@ -1373,6 +1375,7 @@
       ? `<img class="guide-thumb" src="${g.thumbnail}" alt="${g.name}">`
       : `<div class="guide-thumb-placeholder">👤</div>`;
     const safeG = JSON.stringify(g).replace(/"/g, '&quot;');
+    const signLang = g.is_sign_language ? '🤟 Жестовый язык' : '';
     return `
       <div class="guide-card ${selected ? 'selected' : ''}" data-guide-id="${g.id}" onclick="selectGuide(JSON.parse(this.dataset.guideJson));" data-guide-json="${safeG}">
         <div class="play-overlay">
@@ -1381,13 +1384,13 @@
         </div>
         <div class="guide-info">
           <div class="guide-name">${g.name}</div>
-          <div class="guide-desc">${g.subtitles || ''}</div>
+          <div class="guide-desc">${signLang}</div>
           ${selected ? '<div class="selected-badge">Выбран</div>' : ''}
         </div>
       </div>`;
   }
 
-  function selectGuide(g) {
+  async function selectGuide(g) {
     state.selectedGuide = g;
     document.getElementById('btn-guide-next').disabled = false;
     // Update selection styles without re-fetching
@@ -1408,13 +1411,25 @@
     });
     // Update dashboard guide panel
     document.getElementById('guide-panel-name').textContent = g.name;
-    document.getElementById('guide-panel-desc').textContent = g.subtitles || 'Выберите экспонат чтобы узнать о нём подробнее.';
+    document.getElementById('guide-panel-desc').textContent = 'Выберите экспонат чтобы узнать о нём подробнее.';
     if (g.video) {
       const vid = document.getElementById('guide-video');
       vid.src = g.video;
       vid.style.display = 'block';
       document.getElementById('guide-video-placeholder').style.display = 'none';
       vid.play().catch(() => {});
+    }
+    // Save guide selection on server
+    if (state.deviceToken) {
+      try {
+        await fetch(`${API}/tour/select-guide/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ device_token: state.deviceToken, guide_id: g.id }),
+        });
+      } catch (e) {
+        console.error('Failed to save guide selection:', e);
+      }
     }
   }
 
@@ -1506,30 +1521,12 @@
   function handleWsMessage(msg) {
     const type = msg.type;
 
-    if (type === 'session_state') {
+    if (type === 'tour_info') {
       applySessionState(msg);
-    } else if (type === 'tour_started') {
-      state.tourStatus = 'in_progress';
-      applySessionState(msg);
-      showScreen('dashboard');
-      document.getElementById('break-overlay').classList.remove('visible');
-    } else if (type === 'section_changed') {
-      applySessionState(msg);
-    } else if (type === 'tour_on_break') {
-      state.tourStatus = 'on_break';
-      clearInterval(state.timerInterval);
-      document.getElementById('break-overlay').classList.add('visible');
-      document.getElementById('dash-status-badge').className = 'status-badge on-break';
-      document.getElementById('dash-status-badge').textContent = 'Перерыв';
-    } else if (type === 'tour_resumed') {
-      state.tourStatus = 'in_progress';
-      applySessionState(msg);
-      document.getElementById('break-overlay').classList.remove('visible');
-      document.getElementById('dash-status-badge').className = 'status-badge in-progress';
-      document.getElementById('dash-status-badge').textContent = 'В туре';
     } else if (type === 'tour_finished') {
       state.tourStatus = 'finished';
       clearInterval(state.timerInterval);
+      clearInterval(state.totalTimerInterval);
       showScreen('rating');
     } else if (type === 'kicked') {
       if (state.ws) state.ws.close();
@@ -1554,19 +1551,42 @@
     badge.className = `status-badge ${cls}`;
     badge.textContent = label;
 
-    // Section info
-    if (state.currentSection) {
-      const sec = state.currentSection;
-      const hallName = sec.hall ? sec.hall.name : '—';
+    // Section & hall info (unified format: current_hall is separate field)
+    const sec = msg.current_section;
+    const hall = msg.current_hall;
+    if (sec) {
+      const hallName = hall ? hall.name : '—';
       document.getElementById('dash-hall-name').textContent = hallName.toUpperCase();
       document.getElementById('dash-section-name').textContent = sec.name;
       document.getElementById('info-section-name').textContent = sec.name;
       document.getElementById('info-hall-name').textContent = hallName;
       document.getElementById('tb-hall').textContent = hallName;
+    }
 
-      renderExhibits(sec.exhibits || []);
-    } else {
+    // Exhibits (come as separate array from tourist extras)
+    if (msg.exhibits && msg.exhibits.length) {
+      renderExhibits(msg.exhibits);
+    } else if (!sec) {
       document.getElementById('exhibits-grid').innerHTML = '<div class="no-exhibits">Ожидание начала тура...</div>';
+    }
+
+    // Guide videos (sequential playlist for current section)
+    if (msg.guide_videos) {
+      updateGuideVideos(msg.guide_videos);
+    }
+
+    // Break overlay
+    if (state.tourStatus === 'on_break') {
+      document.getElementById('break-overlay').classList.add('visible');
+      if (msg.is_auto_break && msg.break_remaining_seconds != null) {
+        document.querySelector('.break-sub').textContent = `Автоматический перерыв. Продолжение через ${Math.ceil(msg.break_remaining_seconds / 60)} мин.`;
+      } else if (msg.is_technical_stop) {
+        document.querySelector('.break-sub').textContent = 'Техническая остановка. Ожидайте продолжения.';
+      } else {
+        document.querySelector('.break-sub').textContent = 'Тур временно приостановлен. Ожидайте продолжения.';
+      }
+    } else {
+      document.getElementById('break-overlay').classList.remove('visible');
     }
 
     // Section timer
@@ -1580,8 +1600,15 @@
     }
 
     // If in_progress and we're on waiting screen → go to dashboard
-    if (state.tourStatus === 'in_progress' && document.getElementById('screen-waiting').classList.contains('active')) {
+    if ((state.tourStatus === 'in_progress' || state.tourStatus === 'on_break') && document.getElementById('screen-waiting').classList.contains('active')) {
       showScreen('dashboard');
+    }
+
+    // If finished → rating
+    if (state.tourStatus === 'finished') {
+      clearInterval(state.timerInterval);
+      clearInterval(state.totalTimerInterval);
+      showScreen('rating');
     }
   }
 
@@ -1649,6 +1676,52 @@
     }).join('');
   }
 
+  // ── Guide video playlist ───────────────────────────────────
+  function updateGuideVideos(videos) {
+    state.guideVideos = videos || [];
+    state.guideVideoIndex = 0;
+    const vid = document.getElementById('guide-video');
+    const placeholder = document.getElementById('guide-video-placeholder');
+
+    if (!videos || !videos.length) {
+      vid.style.display = 'none';
+      vid.src = '';
+      placeholder.style.display = 'flex';
+      document.getElementById('guide-panel-desc').textContent = 'Нет видео гида для этого раздела.';
+      return;
+    }
+
+    // Play first video
+    playGuideVideo(0);
+  }
+
+  function playGuideVideo(index) {
+    const videos = state.guideVideos;
+    if (!videos || index >= videos.length) return;
+    state.guideVideoIndex = index;
+
+    const gv = videos[index];
+    const vid = document.getElementById('guide-video');
+    const placeholder = document.getElementById('guide-video-placeholder');
+
+    vid.src = gv.video;
+    vid.style.display = 'block';
+    placeholder.style.display = 'none';
+    vid.load();
+    vid.play().catch(() => {});
+
+    // Show subtitles in guide panel desc
+    document.getElementById('guide-panel-desc').textContent = gv.subtitles || '';
+
+    // When video ends, play next one
+    vid.onended = () => {
+      if (state.guideVideoIndex + 1 < state.guideVideos.length) {
+        playGuideVideo(state.guideVideoIndex + 1);
+      }
+      // If last video — just stop, stay on last frame
+    };
+  }
+
   function openExhibit(ex) {
     document.getElementById('exhibit-modal-title').textContent = ex.title;
     document.getElementById('exhibit-modal-desc').textContent = ex.description || '';
@@ -1676,9 +1749,20 @@
   }
 
   // ── Disconnect ────────────────────────────────────────────
-  function disconnectAndBack() {
+  async function disconnectAndBack() {
     if (state.ws) { state.ws.close(); state.ws = null; }
+    // Notify server
+    if (state.deviceToken) {
+      try {
+        await fetch(`${API}/tour/leave/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ device_token: state.deviceToken }),
+        });
+      } catch {}
+    }
     state.sessionId = null;
+    connectLobby();
     showScreen('specialist-select');
   }
 

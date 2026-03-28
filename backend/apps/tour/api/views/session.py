@@ -15,7 +15,7 @@ from ..serializers import (
     TouristRegisterSerializer,
 )
 
-__all__ = ("TouristJoinView", "TouristRegisterView", "TouristSessionStatusView", "TouristLeaveView")
+__all__ = ("TouristJoinView", "TouristRegisterView", "TouristSessionStatusView", "TouristLeaveView", "TouristSelectGuideView")
 
 
 class TouristRegisterView(APIView):
@@ -239,3 +239,41 @@ class TouristLeaveView(APIView):
         )
 
         return Response({"status": "ok"})
+
+
+class TouristSelectGuideView(APIView):
+    """
+    POST /api/v1/tour/select-guide/
+
+    Турист выбирает гида.
+    Body: {"device_token": 42, "guide_id": 1}
+    """
+
+    authentication_classes = []
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        device_token = request.data.get("device_token")
+        guide_id = request.data.get("guide_id")
+
+        if not device_token or not guide_id:
+            return Response(
+                {"error": "device_token и guide_id обязательны"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            tourist = TouristSession.objects.get(device_token=device_token, is_active=True)
+        except TouristSession.DoesNotExist:
+            return Response({"error": "Токен не найден"}, status=status.HTTP_404_NOT_FOUND)
+
+        from guide.models import Guide
+        try:
+            guide = Guide.objects.get(pk=guide_id, is_active=True)
+        except Guide.DoesNotExist:
+            return Response({"error": "Гид не найден"}, status=status.HTTP_404_NOT_FOUND)
+
+        tourist.guide = guide
+        tourist.save(update_fields=["guide"])
+
+        return Response({"status": "ok", "guide_id": guide.pk, "guide_name": guide.name})

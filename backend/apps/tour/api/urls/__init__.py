@@ -11,4 +11,5 @@ urlpatterns = [
     path("rating/", views.TourRatingView.as_view(), name="tour-rating"),
     path("status/", views.TouristSessionStatusView.as_view(), name="tourist-status"),
     path("leave/", views.TouristLeaveView.as_view(), name="tourist-leave"),
+    path("select-guide/", views.TouristSelectGuideView.as_view(), name="tourist-select-guide"),
 ]

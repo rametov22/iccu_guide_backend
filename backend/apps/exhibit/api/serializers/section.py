@@ -9,7 +9,7 @@ __all__ = ("SectionSerializer", "SectionWithExhibitsSerializer")
 class SectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Section
-        fields = ("id", "name", "description", "order", "duration_minutes", "break_duration_minutes", "hall")
+        fields = ("id", "name", "description", "order", "duration_seconds", "break_duration_seconds", "hall")
 
 
 class SectionWithExhibitsSerializer(serializers.ModelSerializer):
@@ -19,4 +19,4 @@ class SectionWithExhibitsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Section
-        fields = ("id", "name", "description", "order", "duration_minutes", "break_duration_minutes", "exhibits")
+        fields = ("id", "name", "description", "order", "duration_seconds", "break_duration_seconds", "exhibits")

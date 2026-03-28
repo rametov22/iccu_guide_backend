@@ -32,6 +32,15 @@ class TouristSession(models.Model):
         verbose_name=_("Сессия тура"),
     )
 
+    guide = models.ForeignKey(
+        "guide.Guide",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="tourist_sessions",
+        verbose_name=_("Выбранный гид"),
+    )
+
     device_token = models.PositiveIntegerField(
         unique=True,
         verbose_name=_("Номер устройства"),

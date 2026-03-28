@@ -15,20 +15,6 @@ class Guide(models.Model):
         verbose_name=_("Имя"),
     )
 
-    subtitles = models.TextField(
-        blank=True,
-        default="",
-        verbose_name=_("Субтитры"),
-        help_text=_("Текст субтитров для видео гида"),
-    )
-
-    video = models.FileField(
-        upload_to="guides/videos/",
-        blank=True,
-        null=True,
-        verbose_name=_("Видео"),
-    )
-
     thumbnail = models.ImageField(
         upload_to="guides/thumbnails/",
         blank=True,

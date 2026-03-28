@@ -33,14 +33,14 @@ class Section(models.Model):
         verbose_name=_("Порядок"),
     )
 
-    duration_minutes = models.PositiveIntegerField(
-        default=10,
-        verbose_name=_("Длительность (минут)"),
+    duration_seconds = models.PositiveIntegerField(
+        default=600,
+        verbose_name=_("Длительность (секунд)"),
     )
 
-    break_duration_minutes = models.PositiveIntegerField(
-        default=5,
-        verbose_name=_("Перерыв после раздела (минут)"),
+    break_duration_seconds = models.PositiveIntegerField(
+        default=300,
+        verbose_name=_("Перерыв после раздела (секунд)"),
         help_text=_("Длительность перерыва после завершения этого раздела"),
     )
 

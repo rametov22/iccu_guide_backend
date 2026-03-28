@@ -87,6 +87,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
         # Отправляем текущее состояние
         state = await self._get_session_state()
+        if not self.is_specialist:
+            tourist_extra = await self._get_tourist_extras(state.get("current_section"))
+            state.update(tourist_extra)
         await self.send_json({"type": "tour_info", **state})
 
         # Специалист переподключается к активному туру — перезапускаем таймер
@@ -336,9 +339,11 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         )
 
     async def tour_info(self, event):
-        await self.send_json(
-            {k: v for k, v in event.items() if k != "type"} | {"type": "tour_info"}
-        )
+        data = {k: v for k, v in event.items() if k != "type"}
+        if not self.is_specialist:
+            tourist_extra = await self._get_tourist_extras(data.get("current_section"))
+            data.update(tourist_extra)
+        await self.send_json({"type": "tour_info", **data})
 
     async def tour_finished(self, event):
         await self.send_json({"type": "tour_finished"})
@@ -368,13 +373,23 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         hall_data = None
         timer_data = None
 
-        if session.current_section:
-            sec = session.current_section
+        sec = session.current_section
+        if not sec:
+            # Тур ещё не начат — берём первый раздел
+            from exhibit.models import Section as SectionModel
+            sec = (
+                SectionModel.objects.filter(is_active=True)
+                .select_related("hall")
+                .order_by("hall__order", "order")
+                .first()
+            )
+
+        if sec:
             section_data = {
                 "id": sec.id,
                 "name": str(sec.name),
-                "duration_minutes": sec.duration_minutes,
-                "break_duration_minutes": sec.break_duration_minutes,
+                "duration_seconds": sec.duration_seconds,
+                "break_duration_seconds": sec.break_duration_seconds,
             }
             hall_data = {
                 "id": sec.hall.id,
@@ -387,7 +402,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             ):
                 now = timezone.now()
                 elapsed = (now - session.section_started_at).total_seconds()
-                section_total = sec.duration_minutes * 60
+                section_total = sec.duration_seconds
                 remaining = max(0, section_total - elapsed)
                 timer_data = {
                     "section_remaining_seconds": int(remaining),
@@ -399,7 +414,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             ):
                 timer_data = {
                     "section_remaining_seconds": session.paused_remaining_seconds,
-                    "section_total_seconds": sec.duration_minutes * 60,
+                    "section_total_seconds": sec.duration_seconds,
                 }
 
         total_remaining = self._calc_total_remaining(session, timer_data)
@@ -411,7 +426,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         )
         total_sections_count = len(all_sections)
         total_tour_seconds = sum(
-            (s.duration_minutes + s.break_duration_minutes) * 60 for s in all_sections
+            (s.duration_seconds + s.break_duration_seconds) for s in all_sections
         )
 
         # Разделы текущего зала
@@ -422,13 +437,18 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                     hall_sections.append({
                         "id": s.id,
                         "name": str(s.name),
-                        "duration_minutes": s.duration_minutes,
-                        "break_duration_minutes": s.break_duration_minutes,
+                        "duration_seconds": s.duration_seconds,
+                        "break_duration_seconds": s.break_duration_seconds,
                     })
 
         tourist_count = TouristSession.objects.filter(
             tour_session=session, is_active=True
         ).count()
+
+        # Последний ли это раздел?
+        is_last_section = False
+        if session.current_section and all_sections:
+            is_last_section = session.current_section_id == all_sections[-1].id
 
         is_auto_break = (
             session.status == TourSession.Status.ON_BREAK
@@ -449,6 +469,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             "total_sections_count": total_sections_count,
             "hall_sections": hall_sections,
             "is_technical_stop": session.is_technical_stop,
+            "is_last_section": is_last_section,
             "is_auto_break": bool(is_auto_break),
             "break_remaining_seconds": (
                 session.break_remaining_seconds if is_auto_break else None
@@ -468,7 +489,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         all_sections = list(
             Section.objects.filter(is_active=True)
             .order_by("hall__order", "order")
-            .values_list("id", "duration_minutes", "break_duration_minutes")
+            .values_list("id", "duration_seconds", "break_duration_seconds")
         )
 
         found_current = False
@@ -478,7 +499,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                 found_current = True
                 continue
             if found_current:
-                future_seconds += (dur + brk) * 60
+                future_seconds += dur + brk
 
         return int(current_remaining + future_seconds)
 
@@ -521,6 +542,58 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             )
         except TouristSession.DoesNotExist:
             return None
+
+    @database_sync_to_async
+    def _get_tourist_extras(self, current_section):
+        """Доп. данные для туриста: видео гида текущего раздела + экспонаты."""
+        from guide.models import GuideVideo
+        from exhibit.models import Exhibit
+
+        result = {"guide_videos": [], "exhibits": []}
+
+        section_id = current_section.get("id") if current_section else None
+        if not section_id:
+            return result
+
+        # Видео гида для текущего раздела
+        guide_id = None
+        if self.tourist_session:
+            try:
+                ts = TouristSession.objects.select_related("guide").get(pk=self.tourist_session.pk)
+                guide_id = ts.guide_id
+            except TouristSession.DoesNotExist:
+                pass
+
+        if guide_id:
+            for gv in (
+                GuideVideo.objects.filter(guide_id=guide_id, section_id=section_id)
+                .order_by("order")
+            ):
+                video = gv.video
+                result["guide_videos"].append({
+                    "id": gv.id,
+                    "video": f"{MEDIA_URL}{video.name}" if video else None,
+                    "subtitles": str(gv.subtitles) if gv.subtitles else "",
+                    "order": gv.order,
+                })
+
+        # Экспонаты текущего раздела
+        for ex in (
+            Exhibit.objects.filter(section_id=section_id, is_active=True)
+            .order_by("order", "title")
+        ):
+            video = ex.video
+            thumbnail = ex.thumbnail
+            result["exhibits"].append({
+                "id": ex.id,
+                "title": str(ex.title) if ex.title else "",
+                "description": str(ex.description) if ex.description else "",
+                "video": f"{MEDIA_URL}{video.name}" if video else None,
+                "thumbnail": f"{MEDIA_URL}{thumbnail.name}" if thumbnail else None,
+                "order": ex.order,
+            })
+
+        return result
 
     @database_sync_to_async
     def _get_session_state(self):
@@ -576,7 +649,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         if not session.section_started_at or not session.current_section:
             return None
         elapsed = (timezone.now() - session.section_started_at).total_seconds()
-        total = session.current_section.duration_minutes * 60
+        total = session.current_section.duration_seconds
         return max(0, int(total - elapsed))
 
     @database_sync_to_async
@@ -585,7 +658,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             pk=self.session_id
         )
         if session.current_section:
-            return session.current_section.break_duration_minutes * 60
+            return session.current_section.break_duration_seconds
         return 0
 
     # ── Combined DB operations (mutation + state in one call) ──
@@ -631,7 +704,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         ).get(pk=self.session_id)
 
         state = self._build_state_dict(session)
-        duration = first_section.duration_minutes * 60
+        duration = first_section.duration_seconds
         return duration, state
 
     @database_sync_to_async
@@ -684,7 +757,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         ).get(pk=self.session_id)
 
         state = self._build_state_dict(session)
-        duration = next_section.duration_minutes * 60
+        duration = next_section.duration_seconds
         return duration, state
 
     @database_sync_to_async
@@ -734,7 +807,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         ).get(pk=self.session_id)
 
         state = self._build_state_dict(session)
-        duration = prev_section.duration_minutes * 60
+        duration = prev_section.duration_seconds
         return duration, state
 
     @database_sync_to_async
@@ -747,7 +820,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         remaining = 0
         if session.section_started_at and session.current_section:
             elapsed = (now - session.section_started_at).total_seconds()
-            total = session.current_section.duration_minutes * 60
+            total = session.current_section.duration_seconds
             remaining = max(0, int(total - elapsed))
 
         session.status = TourSession.Status.ON_BREAK
@@ -778,7 +851,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         now = timezone.now()
         session.status = TourSession.Status.IN_PROGRESS
         elapsed = (
-            (session.current_section.duration_minutes * 60 - remaining)
+            (session.current_section.duration_seconds - remaining)
             if session.current_section
             else 0
         )
@@ -814,25 +887,14 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         sec = Section.objects.get(pk=session.current_section_id)
 
         if target == "section":
-            new_dur = max(1, sec.duration_minutes + (delta_seconds // 60))
-            sec.duration_minutes = new_dur
-            sec.save(update_fields=["duration_minutes"])
-
-            # Recalculate section_started_at to adjust remaining time
-            if (
-                session.status == TourSession.Status.IN_PROGRESS
-                and session.section_started_at
-            ):
-                now = timezone.now()
-                elapsed = (now - session.section_started_at).total_seconds()
-                new_total = new_dur * 60
-                new_remaining = max(0, new_total - elapsed)
-                # No need to change section_started_at, timer will use new duration
+            new_dur = max(1, sec.duration_seconds + delta_seconds)
+            sec.duration_seconds = new_dur
+            sec.save(update_fields=["duration_seconds"])
 
         elif target == "break":
-            new_brk = max(0, sec.break_duration_minutes + (delta_seconds // 60))
-            sec.break_duration_minutes = new_brk
-            sec.save(update_fields=["break_duration_minutes"])
+            new_brk = max(0, sec.break_duration_seconds + delta_seconds)
+            sec.break_duration_seconds = new_brk
+            sec.save(update_fields=["break_duration_seconds"])
 
         # Re-fetch and build state
         session = TourSession.objects.select_related(

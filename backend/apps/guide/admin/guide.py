@@ -1,9 +1,16 @@
 from django.contrib import admin
-from modeltranslation.admin import TabbedTranslationAdmin
+from modeltranslation.admin import TabbedTranslationAdmin, TranslationTabularInline
 
-from ..models import Guide
+from ..models import Guide, GuideVideo
 
 __all__ = ("GuideAdmin",)
+
+
+class GuideVideoInline(TranslationTabularInline):
+    model = GuideVideo
+    extra = 1
+    ordering = ("section", "order")
+    autocomplete_fields = ("section",)
 
 
 @admin.register(Guide)
@@ -14,3 +21,4 @@ class GuideAdmin(TabbedTranslationAdmin):
     list_filter = ("is_active", "is_sign_language")
     search_fields = ("name",)
     ordering = ("order",)
+    inlines = [GuideVideoInline]
