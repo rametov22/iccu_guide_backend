@@ -362,38 +362,24 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
     def _build_state_dict(self, session):
         """Build session state dict. Must be called from sync context (inside @database_sync_to_async)."""
+        from exhibit.models import Section
+
         section_data = None
+        hall_data = None
         timer_data = None
 
         if session.current_section:
             sec = session.current_section
             section_data = {
                 "id": sec.id,
-                "name": sec.name,
+                "name": str(sec.name),
                 "duration_minutes": sec.duration_minutes,
                 "break_duration_minutes": sec.break_duration_minutes,
-                "hall": {
-                    "id": sec.hall.id,
-                    "name": sec.hall.name,
-                },
             }
-            exhibits = []
-            for ex in sec.exhibits.filter(is_active=True).order_by("order", "title"):
-                video = ex.video
-                thumbnail = ex.thumbnail
-                exhibits.append(
-                    {
-                        "id": ex.id,
-                        "title": str(ex.title) if ex.title else "",
-                        "description": str(ex.description) if ex.description else "",
-                        "video": f"{MEDIA_URL}{video.name}" if video else None,
-                        "thumbnail": (
-                            f"{MEDIA_URL}{thumbnail.name}" if thumbnail else None
-                        ),
-                        "order": ex.order,
-                    }
-                )
-            section_data["exhibits"] = exhibits
+            hall_data = {
+                "id": sec.hall.id,
+                "name": str(sec.hall.name),
+            }
 
             if (
                 session.status == TourSession.Status.IN_PROGRESS
@@ -416,46 +402,33 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                     "section_total_seconds": sec.duration_minutes * 60,
                 }
 
-        tourists = list(
-            TouristSession.objects.filter(tour_session=session, is_active=True)
-            .order_by("tour_number")
-            .values(
-                "id",
-                "device_token",
-                "tour_number",
-                "device_name",
-                "ip_address",
-                "joined_at",
-            )
-        )
-        for t in tourists:
-            t["device_token"] = str(t["device_token"])
-            if t["joined_at"]:
-                t["joined_at"] = t["joined_at"].isoformat()
-
         total_remaining = self._calc_total_remaining(session, timer_data)
 
-        # Все разделы для расчётов
-        from exhibit.models import Section
-
-        all_sections_qs = list(
+        all_sections = list(
             Section.objects.filter(is_active=True)
             .order_by("hall__order", "order")
-            .values_list("id", "duration_minutes", "break_duration_minutes")
+            .select_related("hall")
         )
-        total_sections_count = len(all_sections_qs)
-        total_tour_seconds = sum((dur + brk) * 60 for _, dur, brk in all_sections_qs)
+        total_sections_count = len(all_sections)
+        total_tour_seconds = sum(
+            (s.duration_minutes + s.break_duration_minutes) * 60 for s in all_sections
+        )
 
-        # Разделы текущего зала (маршрут)
+        # Разделы текущего зала
         hall_sections = []
-        if section_data:
-            hall_id = section_data["hall"]["id"]
-            for sec_obj in (
-                Section.objects.filter(hall_id=hall_id, is_active=True)
-                .order_by("order")
-                .values("id", "name", "duration_minutes", "break_duration_minutes")
-            ):
-                hall_sections.append(sec_obj)
+        if hall_data:
+            for s in all_sections:
+                if s.hall_id == hall_data["id"]:
+                    hall_sections.append({
+                        "id": s.id,
+                        "name": str(s.name),
+                        "duration_minutes": s.duration_minutes,
+                        "break_duration_minutes": s.break_duration_minutes,
+                    })
+
+        tourist_count = TouristSession.objects.filter(
+            tour_session=session, is_active=True
+        ).count()
 
         is_auto_break = (
             session.status == TourSession.Status.ON_BREAK
@@ -467,14 +440,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         return {
             "session_id": session.pk,
             "status": session.status,
-            "specialist": {
-                "id": session.specialist.id,
-                "name": session.specialist.name,
-                "number": session.specialist.number,
-            },
-            "tourist_count": session.tourist_count,
-            "tourists": tourists,
+            "tourist_count": tourist_count,
             "current_section": section_data,
+            "current_hall": hall_data,
             "timer": timer_data,
             "total_remaining_seconds": total_remaining,
             "total_tour_seconds": total_tour_seconds,
@@ -595,66 +563,10 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def _get_tour_info(self):
-        from exhibit.models import Section
-
-        session = TourSession.objects.get(pk=self.session_id)
-
-        all_sections = list(
-            Section.objects.filter(is_active=True)
-            .order_by("hall__order", "order")
-            .select_related("hall")
-        )
-
-        total_sections_count = len(all_sections)
-        total_tour_seconds = sum(
-            (s.duration_minutes + s.break_duration_minutes) * 60 for s in all_sections
-        )
-
-        current_section = all_sections[0] if all_sections else None
-
-        current_hall = current_section.hall if current_section else None
-
-        hall_sections = []
-        if current_hall:
-            for s in all_sections:
-                if s.hall_id == current_hall.id:
-                    hall_sections.append(
-                        {
-                            "id": s.id,
-                            "name": str(s.name),
-                            "duration_minutes": s.duration_minutes,
-                            "break_duration_minutes": s.break_duration_minutes,
-                        }
-                    )
-
-        tourist_count = TouristSession.objects.filter(
-            tour_session=session, is_active=True
-        ).count()
-
-        return {
-            "tourist_count": tourist_count,
-            "total_sections_count": total_sections_count,
-            "total_tour_seconds": total_tour_seconds,
-            "current_section": (
-                {
-                    "id": current_section.id,
-                    "name": str(current_section.name),
-                    "duration_minutes": current_section.duration_minutes,
-                    "break_duration_minutes": current_section.break_duration_minutes,
-                }
-                if current_section
-                else None
-            ),
-            "current_hall": (
-                {
-                    "id": current_hall.id,
-                    "name": str(current_hall.name),
-                }
-                if current_hall
-                else None
-            ),
-            "hall_sections": hall_sections,
-        }
+        session = TourSession.objects.select_related(
+            "specialist__user", "current_section__hall"
+        ).get(pk=self.session_id)
+        return self._build_state_dict(session)
 
     @database_sync_to_async
     def _calculate_remaining_seconds(self):

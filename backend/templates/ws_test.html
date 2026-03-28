@@ -773,11 +773,10 @@ function applyTourInfo(d) {
     document.getElementById('ti-totaltime').textContent = t;
   }
   updCount(d.tourist_count ?? 0);
-  if (d.tourists) setTourists(d.tourists);
 
   // ── Экран tour_info (waiting или первый запуск) ──
-  const sec   = d.current_section;
-  const hall  = sec?.hall || d.current_hall;
+  const sec  = d.current_section;
+  const hall = d.current_hall;
   document.getElementById('ti-hall').textContent    = hall?.name || '—';
   document.getElementById('ti-section').textContent = sec?.name  || '—';
   document.getElementById('ti-section-dur').textContent = sec ? `${sec.duration_minutes} мин` : '';
@@ -785,12 +784,10 @@ function applyTourInfo(d) {
 
   // ── Dashboard ──
   setStatus(status);
-  const curSec = d.current_section;
-  document.getElementById('dh-hall').textContent = curSec?.hall?.name || hall?.name || '—';
-  document.getElementById('dh-sec').textContent  = curSec?.name || sec?.name || '—';
+  document.getElementById('dh-hall').textContent = hall?.name || '—';
+  document.getElementById('dh-sec').textContent  = sec?.name || '—';
 
-  if (curSec) { renderRouteFromHallSections(curSec.id); renderExhibits(curSec.exhibits||[]); }
-  else        { renderExhibits([]); }
+  if (sec) { renderRouteFromHallSections(sec.id); }
 
   stopBreakTimer();
   isOnBreak = false;
