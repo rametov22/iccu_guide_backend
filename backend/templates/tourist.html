@@ -1138,6 +1138,7 @@
 
   const API = '/ru/api/v1';
   const WS_HOST = location.host;
+  const WS_PROTO = location.protocol === 'https:' ? 'wss' : 'ws';
 
   // ── WS status indicator ───────────────────────────────────
   function setWsStatus(status) {
@@ -1283,7 +1284,7 @@
     if (state.lobbyWs) return;
     if (!state.deviceToken) return;
 
-    const url = `ws://${WS_HOST}/ws/lobby/?device_token=${state.deviceToken}`;
+    const url = `${WS_PROTO}://${WS_HOST}/ws/lobby/?device_token=${state.deviceToken}`;
     const lws = new WebSocket(url);
     state.lobbyWs = lws;
 
@@ -1485,7 +1486,7 @@
   // ── WebSocket ─────────────────────────────────────────────
   function connectWS() {
     if (state.ws) state.ws.close();
-    const url = `ws://${WS_HOST}/ws/tour/${state.sessionId}/?device_token=${state.deviceToken}`;
+    const url = `${WS_PROTO}://${WS_HOST}/ws/tour/${state.sessionId}/?device_token=${state.deviceToken}`;
     setWsStatus('connecting');
     state.ws = new WebSocket(url);
 
