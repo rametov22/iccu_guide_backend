@@ -68,6 +68,8 @@ class TourSession(models.Model):
 
     is_technical_stop = models.BooleanField(
         default=False,
+        null=True,
+        blank=True,
         verbose_name=_("Техническая остановка"),
     )
 
