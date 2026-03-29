@@ -39,6 +39,14 @@ class Hall(models.Model):
         verbose_name=_("Карта зала"),
     )
 
+    transition_map_image = models.ImageField(
+        upload_to="halls/transition_maps/",
+        blank=True,
+        null=True,
+        verbose_name=_("Карта перехода к залу"),
+        help_text=_("Показывается туристам при переходе в этот зал"),
+    )
+
     is_active = models.BooleanField(
         default=True,
         verbose_name=_("Активен"),

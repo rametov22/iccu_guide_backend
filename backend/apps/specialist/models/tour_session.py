@@ -70,6 +70,11 @@ class TourSession(models.Model):
         verbose_name=_("Техническая остановка"),
     )
 
+    is_hall_transition = models.BooleanField(
+        default=False,
+        verbose_name=_("Переход между залами"),
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)

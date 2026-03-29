@@ -31,6 +31,13 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         self.device_token = None
         self.tourist_session = None
         self._timer_task = None
+        self._base_url = ""
+
+    def _media_url(self, field):
+        """Return absolute URL for a FileField/ImageField, or None."""
+        if not field:
+            return None
+        return f"{self._base_url}{MEDIA_URL}{field.name}"
 
     # ── Connect / Disconnect ──────────────────────────────────
 
@@ -51,6 +58,12 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         params = dict(p.split("=", 1) for p in query_string.split("&") if "=" in p)
         self.is_specialist = params.get("role") == "specialist"
         self.device_token = params.get("device_token")
+
+        # Build base URL from WS scope headers
+        headers = dict(self.scope.get("headers", []))
+        host = headers.get(b"host", b"").decode()
+        scheme = "https" if headers.get(b"x-forwarded-proto", b"").decode() == "https" else "http"
+        self._base_url = f"{scheme}://{host}" if host else ""
 
         if self.is_specialist:
             # Токен из query (?token=...) или из заголовка (Authorization: Bearer ...)
@@ -149,7 +162,13 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                     self.group_name,
                     {"type": "tour.info", **state},
                 )
-                self._start_section_timer(duration)
+                if duration < 0:
+                    # Hall transition — wait, then start section
+                    self._timer_task = asyncio.ensure_future(
+                        self._hall_transition_then_start(-duration)
+                    )
+                else:
+                    self._start_section_timer(duration)
 
         elif action == "prev_section":
             self._cancel_timer()
@@ -286,7 +305,53 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                 self.group_name,
                 {"type": "tour.info", **state},
             )
+            if duration < 0:
+                self._timer_task = asyncio.ensure_future(
+                    self._hall_transition_then_start(-duration)
+                )
+            else:
+                self._start_section_timer(duration)
+
+    async def _hall_transition_then_start(self, seconds):
+        """Wait for hall transition, then start the section timer."""
+        try:
+            await asyncio.sleep(seconds)
+            await self._finish_hall_transition()
+        except asyncio.CancelledError:
+            pass
+
+    async def _finish_hall_transition(self):
+        """End hall transition — set IN_PROGRESS and start section timer."""
+        duration = await self._do_end_hall_transition()
+        if duration:
+            state = await self._get_session_state()
+            await self.channel_layer.group_send(
+                self.group_name,
+                {"type": "tour.info", **state},
+            )
             self._start_section_timer(duration)
+
+    @database_sync_to_async
+    def _do_end_hall_transition(self):
+        session = TourSession.objects.select_related(
+            "current_section"
+        ).get(pk=self.session_id)
+        if not session.is_hall_transition:
+            return None
+        now = timezone.now()
+        session.status = TourSession.Status.IN_PROGRESS
+        session.is_hall_transition = False
+        session.break_remaining_seconds = None
+        session.section_started_at = now
+        session.save(
+            update_fields=[
+                "status",
+                "is_hall_transition",
+                "break_remaining_seconds",
+                "section_started_at",
+            ]
+        )
+        return session.current_section.duration_seconds
 
     # ── Kick tourist ──────────────────────────────────────────
 
@@ -385,20 +450,19 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             )
 
         if sec:
-            sec_map = sec.map_image
             section_data = {
                 "id": sec.id,
                 "name": str(sec.name),
                 "duration_seconds": sec.duration_seconds,
                 "break_duration_seconds": sec.break_duration_seconds,
-                "map_image": f"{MEDIA_URL}{sec_map.name}" if sec_map else None,
+                "video": self._media_url(sec.video),
+                "map_image": self._media_url(sec.map_image),
             }
-            hall_map = sec.hall.map_image
             hall_data = {
                 "id": sec.hall.id,
                 "name": str(sec.hall.name),
                 "transition_seconds": sec.hall.transition_seconds,
-                "map_image": f"{MEDIA_URL}{hall_map.name}" if hall_map else None,
+                "map_image": self._media_url(sec.hall.map_image),
             }
 
             if (
@@ -463,9 +527,20 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         is_auto_break = (
             session.status == TourSession.Status.ON_BREAK
             and not session.is_technical_stop
+            and not session.is_hall_transition
             and session.paused_remaining_seconds is None
             and session.break_remaining_seconds
         )
+
+        is_hall_transition = (
+            session.status == TourSession.Status.ON_BREAK
+            and session.is_hall_transition
+        )
+
+        # Карта перехода к текущему залу
+        hall_transition_map = None
+        if is_hall_transition and sec:
+            hall_transition_map = self._media_url(sec.hall.transition_map_image)
 
         return {
             "session_id": session.pk,
@@ -481,8 +556,12 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             "is_technical_stop": session.is_technical_stop,
             "is_last_section": is_last_section,
             "is_auto_break": bool(is_auto_break),
+            "is_hall_transition": is_hall_transition,
+            "hall_transition_map_image": hall_transition_map,
             "break_remaining_seconds": (
-                session.break_remaining_seconds if is_auto_break else None
+                session.break_remaining_seconds
+                if (is_auto_break or is_hall_transition)
+                else None
             ),
         }
 
@@ -584,10 +663,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                 GuideVideo.objects.filter(guide_id=guide_id, section_id=section_id)
                 .order_by("order")
             ):
-                video = gv.video
                 result["guide_videos"].append({
                     "id": gv.id,
-                    "video": f"{MEDIA_URL}{video.name}" if video else None,
+                    "video": self._media_url(gv.video),
                     "subtitles": str(gv.subtitles) if gv.subtitles else "",
                     "order": gv.order,
                 })
@@ -597,14 +675,12 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             Exhibit.objects.filter(section_id=section_id, is_active=True)
             .order_by("order", "title")
         ):
-            video = ex.video
-            thumbnail = ex.thumbnail
             result["exhibits"].append({
                 "id": ex.id,
                 "title": str(ex.title) if ex.title else "",
                 "description": str(ex.description) if ex.description else "",
-                "video": f"{MEDIA_URL}{video.name}" if video else None,
-                "thumbnail": f"{MEDIA_URL}{thumbnail.name}" if thumbnail else None,
+                "video": self._media_url(ex.video),
+                "thumbnail": self._media_url(ex.thumbnail),
                 "order": ex.order,
             })
 
@@ -751,29 +827,64 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         if not next_section:
             return None
 
-        now = timezone.now()
-        session.current_section = next_section
-        session.section_started_at = now
-        session.status = TourSession.Status.IN_PROGRESS
-        session.paused_remaining_seconds = None
-        session.is_technical_stop = False
-        session.save(
-            update_fields=[
-                "current_section",
-                "section_started_at",
-                "status",
-                "paused_remaining_seconds",
-                "is_technical_stop",
-            ]
-        )
+        hall_changed = current.hall_id != next_section.hall_id
+        transition_secs = next_section.hall.transition_seconds if hall_changed else 0
 
-        session = TourSession.objects.select_related(
-            "specialist__user", "current_section__hall"
-        ).get(pk=self.session_id)
+        if hall_changed and transition_secs > 0:
+            # Переход между залами — ставим ON_BREAK с hall_transition
+            session.current_section = next_section
+            session.status = TourSession.Status.ON_BREAK
+            session.is_hall_transition = True
+            session.is_technical_stop = False
+            session.paused_remaining_seconds = None
+            session.break_remaining_seconds = transition_secs
+            session.section_started_at = None
+            session.save(
+                update_fields=[
+                    "current_section",
+                    "status",
+                    "is_hall_transition",
+                    "is_technical_stop",
+                    "paused_remaining_seconds",
+                    "break_remaining_seconds",
+                    "section_started_at",
+                ]
+            )
 
-        state = self._build_state_dict(session)
-        duration = next_section.duration_seconds
-        return duration, state
+            session = TourSession.objects.select_related(
+                "specialist__user", "current_section__hall"
+            ).get(pk=self.session_id)
+
+            state = self._build_state_dict(session)
+            # Return negative duration to signal hall transition
+            return -transition_secs, state
+        else:
+            # Тот же зал — обычный переход
+            now = timezone.now()
+            session.current_section = next_section
+            session.section_started_at = now
+            session.status = TourSession.Status.IN_PROGRESS
+            session.paused_remaining_seconds = None
+            session.is_technical_stop = False
+            session.is_hall_transition = False
+            session.save(
+                update_fields=[
+                    "current_section",
+                    "section_started_at",
+                    "status",
+                    "paused_remaining_seconds",
+                    "is_technical_stop",
+                    "is_hall_transition",
+                ]
+            )
+
+            session = TourSession.objects.select_related(
+                "specialist__user", "current_section__hall"
+            ).get(pk=self.session_id)
+
+            state = self._build_state_dict(session)
+            duration = next_section.duration_seconds
+            return duration, state
 
     @database_sync_to_async
     def _do_prev_section(self):
@@ -807,6 +918,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         session.status = TourSession.Status.IN_PROGRESS
         session.paused_remaining_seconds = None
         session.is_technical_stop = False
+        session.is_hall_transition = False
         session.save(
             update_fields=[
                 "current_section",
@@ -814,6 +926,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                 "status",
                 "paused_remaining_seconds",
                 "is_technical_stop",
+                "is_hall_transition",
             ]
         )
 

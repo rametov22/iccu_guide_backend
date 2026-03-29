@@ -44,6 +44,13 @@ class Section(models.Model):
         help_text=_("Длительность перерыва после завершения этого раздела"),
     )
 
+    video = models.FileField(
+        upload_to="sections/videos/",
+        blank=True,
+        null=True,
+        verbose_name=_("Видео раздела"),
+    )
+
     map_image = models.ImageField(
         upload_to="sections/maps/",
         blank=True,
