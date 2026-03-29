@@ -808,7 +808,14 @@ function applyTourInfo(d) {
     isOnBreak = true;
     breakIsTechnical = !!d.is_technical_stop;
     breakIsAuto      = !!d.is_auto_break;
-    if (breakIsAuto) {
+    const isHallTransition = !!d.is_hall_transition;
+    if (isHallTransition) {
+      breakRemain = d.break_remaining_seconds || 0;
+      startBreakTimer();
+      showCtrl('break_auto');
+      const mapImg = d.hall_transition_map_image;
+      toast('Переход в зал: ' + (hall?.name || '—') + (mapImg ? '' : '') , 'info');
+    } else if (breakIsAuto) {
       breakRemain = d.break_remaining_seconds || 0;
       startBreakTimer();
       showCtrl('break_auto');

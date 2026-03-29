@@ -978,9 +978,11 @@
 <div class="screen" id="screen-dashboard">
   <!-- Break overlay -->
   <div class="break-overlay" id="break-overlay">
-    <div class="break-icon">☕</div>
-    <div class="break-title">Перерыв</div>
-    <div class="break-sub">Тур временно приостановлен. Ожидайте продолжения.</div>
+    <div class="break-icon" id="break-icon">☕</div>
+    <div class="break-title" id="break-title">Перерыв</div>
+    <div class="break-sub" id="break-sub">Тур временно приостановлен. Ожидайте продолжения.</div>
+    <img id="break-map-image" src="" alt="" style="display:none;max-width:80vw;max-height:50vh;border-radius:16px;margin-top:12px">
+    <div id="break-timer" style="font-size:28px;font-weight:700;color:#c8a94a;margin-top:8px;display:none">—</div>
   </div>
 
   <div class="dashboard-wrap">
@@ -1015,6 +1017,16 @@
           <div class="exhibits-hall-name" id="dash-hall-name">Зал</div>
           <div class="exhibits-section-name" id="dash-section-name">Раздел</div>
           <div class="exhibits-hint">ⓘ Все экспонаты зала, можно пересмотреть ещё раз. Действует рассказ гида об экспонате</div>
+        </div>
+        <!-- Section video -->
+        <div id="section-video-wrap" style="display:none;padding:8px 12px">
+          <video id="section-video" controls playsinline style="width:100%;max-height:180px;border-radius:10px;background:#000">
+          </video>
+        </div>
+        <!-- Maps -->
+        <div id="maps-row" style="display:none;padding:4px 12px;display:flex;gap:8px;flex-wrap:wrap">
+          <img id="hall-map-img" src="" alt="Карта зала" style="display:none;max-height:100px;border-radius:8px;border:1px solid rgba(255,255,255,0.1)">
+          <img id="section-map-img" src="" alt="Карта раздела" style="display:none;max-height:100px;border-radius:8px;border:1px solid rgba(255,255,255,0.1)">
         </div>
         <div class="exhibits-grid" id="exhibits-grid">
           <div class="no-exhibits">Ожидание начала тура...</div>
@@ -1136,6 +1148,7 @@
     lobbyWs: null,
     guideVideos: [],
     guideVideoIndex: 0,
+    breakTimerInterval: null,
   };
 
   const API = '/ru/api/v1';
@@ -1575,18 +1588,88 @@
       updateGuideVideos(msg.guide_videos);
     }
 
+    // Section video
+    const secVideoWrap = document.getElementById('section-video-wrap');
+    const secVideoEl = document.getElementById('section-video');
+    if (sec && sec.video) {
+      secVideoEl.src = sec.video;
+      secVideoWrap.style.display = 'block';
+    } else {
+      secVideoEl.src = '';
+      secVideoWrap.style.display = 'none';
+    }
+
+    // Map images
+    const hallMapImg = document.getElementById('hall-map-img');
+    const secMapImg = document.getElementById('section-map-img');
+    const mapsRow = document.getElementById('maps-row');
+    let hasMap = false;
+    if (hall && hall.map_image) {
+      hallMapImg.src = hall.map_image;
+      hallMapImg.style.display = 'block';
+      hasMap = true;
+    } else {
+      hallMapImg.style.display = 'none';
+    }
+    if (sec && sec.map_image) {
+      secMapImg.src = sec.map_image;
+      secMapImg.style.display = 'block';
+      hasMap = true;
+    } else {
+      secMapImg.style.display = 'none';
+    }
+    mapsRow.style.display = hasMap ? 'flex' : 'none';
+
     // Break overlay
+    clearInterval(state.breakTimerInterval);
+    const breakOverlay = document.getElementById('break-overlay');
+    const breakIcon = document.getElementById('break-icon');
+    const breakTitle = document.getElementById('break-title');
+    const breakSub = document.getElementById('break-sub');
+    const breakMapImg = document.getElementById('break-map-image');
+    const breakTimerEl = document.getElementById('break-timer');
+
     if (state.tourStatus === 'on_break') {
-      document.getElementById('break-overlay').classList.add('visible');
-      if (msg.is_auto_break && msg.break_remaining_seconds != null) {
-        document.querySelector('.break-sub').textContent = `Автоматический перерыв. Продолжение через ${Math.ceil(msg.break_remaining_seconds / 60)} мин.`;
+      breakOverlay.classList.add('visible');
+
+      if (msg.is_hall_transition) {
+        breakIcon.textContent = '🚶';
+        breakTitle.textContent = 'Переход в зал';
+        breakSub.textContent = hall ? `Следуйте к залу: ${hall.name}` : 'Переход между залами';
+        if (msg.hall_transition_map_image) {
+          breakMapImg.src = msg.hall_transition_map_image;
+          breakMapImg.style.display = 'block';
+        } else {
+          breakMapImg.style.display = 'none';
+        }
+        if (msg.break_remaining_seconds) {
+          startBreakCountdown(msg.break_remaining_seconds);
+        }
+      } else if (msg.is_auto_break) {
+        breakIcon.textContent = '☕';
+        breakTitle.textContent = 'Перерыв';
+        breakSub.textContent = 'Автоматический перерыв между разделами.';
+        breakMapImg.style.display = 'none';
+        if (msg.break_remaining_seconds) {
+          startBreakCountdown(msg.break_remaining_seconds);
+        }
       } else if (msg.is_technical_stop) {
-        document.querySelector('.break-sub').textContent = 'Техническая остановка. Ожидайте продолжения.';
+        breakIcon.textContent = '🔧';
+        breakTitle.textContent = 'Техническая остановка';
+        breakSub.textContent = 'Тур временно приостановлен. Ожидайте продолжения.';
+        breakMapImg.style.display = 'none';
+        breakTimerEl.style.display = 'none';
       } else {
-        document.querySelector('.break-sub').textContent = 'Тур временно приостановлен. Ожидайте продолжения.';
+        breakIcon.textContent = '☕';
+        breakTitle.textContent = 'Перерыв';
+        breakSub.textContent = 'Тур временно приостановлен. Ожидайте продолжения.';
+        breakMapImg.style.display = 'none';
+        breakTimerEl.style.display = 'none';
       }
     } else {
-      document.getElementById('break-overlay').classList.remove('visible');
+      breakOverlay.classList.remove('visible');
+      breakMapImg.style.display = 'none';
+      breakTimerEl.style.display = 'none';
     }
 
     // Section timer
@@ -1651,6 +1734,25 @@
       if (state.tourStatus !== 'in_progress') return;
       state.totalRemaining = Math.max(0, state.totalRemaining - 1);
       update();
+    }, 1000);
+  }
+
+  // ── Break countdown ────────────────────────────────────────
+  function startBreakCountdown(secs) {
+    const el = document.getElementById('break-timer');
+    el.style.display = 'block';
+    let remain = secs;
+    const update = () => {
+      const m = Math.floor(remain / 60).toString().padStart(2, '0');
+      const s = (remain % 60).toString().padStart(2, '0');
+      el.textContent = `${m}:${s}`;
+    };
+    update();
+    clearInterval(state.breakTimerInterval);
+    state.breakTimerInterval = setInterval(() => {
+      remain = Math.max(0, remain - 1);
+      update();
+      if (remain <= 0) clearInterval(state.breakTimerInterval);
     }, 1000);
   }
 
@@ -1828,6 +1930,7 @@
     state.tourStatus = 'waiting';
     clearInterval(state.timerInterval);
     clearInterval(state.totalTimerInterval);
+    clearInterval(state.breakTimerInterval);
     stopSessionPoll();
     disconnectLobby();
     localStorage.removeItem('deviceToken');
