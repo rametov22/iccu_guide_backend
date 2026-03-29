@@ -15,8 +15,8 @@ class SectionInline(admin.TabularInline):
 
 @admin.register(Hall)
 class HallAdmin(TabbedTranslationAdmin):
-    list_display = ("name", "order", "is_active")
+    list_display = ("name", "order", "transition_seconds", "is_active")
     list_filter = ("is_active",)
-    list_editable = ("order", "is_active")
+    list_editable = ("order", "transition_seconds", "is_active")
     search_fields = ("name",)
     inlines = [SectionInline]

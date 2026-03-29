@@ -26,6 +26,19 @@ class Hall(models.Model):
         verbose_name=_("Порядок"),
     )
 
+    transition_seconds = models.PositiveIntegerField(
+        default=60,
+        verbose_name=_("Время перехода (секунд)"),
+        help_text=_("Время на переход между залами"),
+    )
+
+    map_image = models.ImageField(
+        upload_to="halls/maps/",
+        blank=True,
+        null=True,
+        verbose_name=_("Карта зала"),
+    )
+
     is_active = models.BooleanField(
         default=True,
         verbose_name=_("Активен"),

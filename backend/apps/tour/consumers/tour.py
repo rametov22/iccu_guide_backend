@@ -385,15 +385,20 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             )
 
         if sec:
+            sec_map = sec.map_image
             section_data = {
                 "id": sec.id,
                 "name": str(sec.name),
                 "duration_seconds": sec.duration_seconds,
                 "break_duration_seconds": sec.break_duration_seconds,
+                "map_image": f"{MEDIA_URL}{sec_map.name}" if sec_map else None,
             }
+            hall_map = sec.hall.map_image
             hall_data = {
                 "id": sec.hall.id,
                 "name": str(sec.hall.name),
+                "transition_seconds": sec.hall.transition_seconds,
+                "map_image": f"{MEDIA_URL}{hall_map.name}" if hall_map else None,
             }
 
             if (
@@ -425,9 +430,14 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             .select_related("hall")
         )
         total_sections_count = len(all_sections)
-        total_tour_seconds = sum(
-            (s.duration_seconds + s.break_duration_seconds) for s in all_sections
-        )
+        # Суммируем разделы + перерывы + переходы между залами
+        seen_halls = set()
+        total_tour_seconds = 0
+        for s in all_sections:
+            total_tour_seconds += s.duration_seconds + s.break_duration_seconds
+            if s.hall_id not in seen_halls:
+                seen_halls.add(s.hall_id)
+                total_tour_seconds += s.hall.transition_seconds
 
         # Разделы текущего зала
         hall_sections = []
@@ -489,17 +499,22 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         all_sections = list(
             Section.objects.filter(is_active=True)
             .order_by("hall__order", "order")
-            .values_list("id", "duration_seconds", "break_duration_seconds")
+            .select_related("hall")
         )
 
+        current_hall_id = session.current_section.hall_id
         found_current = False
         future_seconds = 0
-        for sid, dur, brk in all_sections:
-            if sid == session.current_section_id:
+        seen_halls = set()
+        for s in all_sections:
+            if s.id == session.current_section_id:
                 found_current = True
                 continue
             if found_current:
-                future_seconds += dur + brk
+                future_seconds += s.duration_seconds + s.break_duration_seconds
+                if s.hall_id != current_hall_id and s.hall_id not in seen_halls:
+                    seen_halls.add(s.hall_id)
+                    future_seconds += s.hall.transition_seconds
 
         return int(current_remaining + future_seconds)
 
