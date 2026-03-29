@@ -1558,6 +1558,7 @@
       waiting: ['waiting', 'Ожидание'],
       in_progress: ['in-progress', 'В туре'],
       on_break: ['on-break', 'Перерыв'],
+      hall_transition: ['on-break', 'Переход'],
       finished: ['finished', 'Завершён'],
     };
     const [cls, label] = statusMap[state.tourStatus] || ['waiting', state.tourStatus];
@@ -1629,10 +1630,10 @@
     const breakMapImg = document.getElementById('break-map-image');
     const breakTimerEl = document.getElementById('break-timer');
 
-    if (state.tourStatus === 'on_break') {
+    if (state.tourStatus === 'on_break' || state.tourStatus === 'hall_transition') {
       breakOverlay.classList.add('visible');
 
-      if (msg.is_hall_transition) {
+      if (state.tourStatus === 'hall_transition') {
         breakIcon.textContent = '🚶';
         breakTitle.textContent = 'Переход в зал';
         breakSub.textContent = hall ? `Следуйте к залу: ${hall.name}` : 'Переход между залами';
@@ -1683,7 +1684,7 @@
     }
 
     // If in_progress and we're on waiting screen → go to dashboard
-    if ((state.tourStatus === 'in_progress' || state.tourStatus === 'on_break') && document.getElementById('screen-waiting').classList.contains('active')) {
+    if (['in_progress', 'on_break', 'hall_transition'].includes(state.tourStatus) && document.getElementById('screen-waiting').classList.contains('active')) {
       showScreen('dashboard');
     }
 

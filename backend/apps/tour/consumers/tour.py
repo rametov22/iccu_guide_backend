@@ -336,17 +336,15 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         session = TourSession.objects.select_related(
             "current_section"
         ).get(pk=self.session_id)
-        if not session.is_hall_transition:
+        if session.status != TourSession.Status.HALL_TRANSITION:
             return None
         now = timezone.now()
         session.status = TourSession.Status.IN_PROGRESS
-        session.is_hall_transition = False
         session.break_remaining_seconds = None
         session.section_started_at = now
         session.save(
             update_fields=[
                 "status",
-                "is_hall_transition",
                 "break_remaining_seconds",
                 "section_started_at",
             ]
@@ -527,15 +525,11 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         is_auto_break = (
             session.status == TourSession.Status.ON_BREAK
             and not session.is_technical_stop
-            and not session.is_hall_transition
             and session.paused_remaining_seconds is None
             and session.break_remaining_seconds
         )
 
-        is_hall_transition = (
-            session.status == TourSession.Status.ON_BREAK
-            and session.is_hall_transition
-        )
+        is_hall_transition = session.status == TourSession.Status.HALL_TRANSITION
 
         # Карта перехода к текущему залу
         hall_transition_map = None
@@ -556,7 +550,6 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             "is_technical_stop": session.is_technical_stop,
             "is_last_section": is_last_section,
             "is_auto_break": bool(is_auto_break),
-            "is_hall_transition": is_hall_transition,
             "hall_transition_map_image": hall_transition_map,
             "break_remaining_seconds": (
                 session.break_remaining_seconds
@@ -831,10 +824,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         transition_secs = next_section.hall.transition_seconds if hall_changed else 0
 
         if hall_changed and transition_secs > 0:
-            # Переход между залами — ставим ON_BREAK с hall_transition
+            # Переход между залами
             session.current_section = next_section
-            session.status = TourSession.Status.ON_BREAK
-            session.is_hall_transition = True
+            session.status = TourSession.Status.HALL_TRANSITION
             session.is_technical_stop = False
             session.paused_remaining_seconds = None
             session.break_remaining_seconds = transition_secs
@@ -843,7 +835,6 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                 update_fields=[
                     "current_section",
                     "status",
-                    "is_hall_transition",
                     "is_technical_stop",
                     "paused_remaining_seconds",
                     "break_remaining_seconds",
@@ -866,7 +857,6 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             session.status = TourSession.Status.IN_PROGRESS
             session.paused_remaining_seconds = None
             session.is_technical_stop = False
-            session.is_hall_transition = False
             session.save(
                 update_fields=[
                     "current_section",
@@ -874,7 +864,6 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                     "status",
                     "paused_remaining_seconds",
                     "is_technical_stop",
-                    "is_hall_transition",
                 ]
             )
 
@@ -918,7 +907,6 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         session.status = TourSession.Status.IN_PROGRESS
         session.paused_remaining_seconds = None
         session.is_technical_stop = False
-        session.is_hall_transition = False
         session.save(
             update_fields=[
                 "current_section",
@@ -926,7 +914,6 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                 "status",
                 "paused_remaining_seconds",
                 "is_technical_stop",
-                "is_hall_transition",
             ]
         )
 

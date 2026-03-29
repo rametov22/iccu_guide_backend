@@ -639,7 +639,7 @@ function confirmFinish() {
 /* ══ STATUS ═════════════════════════════════════════ */
 function setStatus(st) {
   sessionStatus = st;
-  const labels = {waiting:'Ожидание',in_progress:'Активен',on_break:'Перерыв',finished:'Завершён'};
+  const labels = {waiting:'Ожидание',in_progress:'Активен',on_break:'Перерыв',hall_transition:'Переход',finished:'Завершён'};
   const badge = document.getElementById('dh-badge');
   badge.className = `s-badge sb-${st}`;
   badge.textContent = labels[st]||st;
@@ -803,19 +803,20 @@ function applyTourInfo(d) {
     showCtrl('active');
     if (!tourTimerIv) startTourTimer();
 
+  } else if (status === 'hall_transition') {
+    stopTimer();
+    isOnBreak = true;
+    breakRemain = d.break_remaining_seconds || 0;
+    startBreakTimer();
+    showCtrl('break_auto');
+    toast('Переход в зал: ' + (hall?.name || '—'), 'info');
+
   } else if (status === 'on_break') {
     stopTimer();
     isOnBreak = true;
     breakIsTechnical = !!d.is_technical_stop;
     breakIsAuto      = !!d.is_auto_break;
-    const isHallTransition = !!d.is_hall_transition;
-    if (isHallTransition) {
-      breakRemain = d.break_remaining_seconds || 0;
-      startBreakTimer();
-      showCtrl('break_auto');
-      const mapImg = d.hall_transition_map_image;
-      toast('Переход в зал: ' + (hall?.name || '—') + (mapImg ? '' : '') , 'info');
-    } else if (breakIsAuto) {
+    if (breakIsAuto) {
       breakRemain = d.break_remaining_seconds || 0;
       startBreakTimer();
       showCtrl('break_auto');

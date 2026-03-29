@@ -16,6 +16,7 @@ class TourSession(models.Model):
         WAITING = "waiting", _("Ожидание подключений")
         IN_PROGRESS = "in_progress", _("Тур идёт")
         ON_BREAK = "on_break", _("Перерыв")
+        HALL_TRANSITION = "hall_transition", _("Переход между залами")
         FINISHED = "finished", _("Завершён")
 
     specialist = models.ForeignKey(
@@ -68,11 +69,6 @@ class TourSession(models.Model):
     is_technical_stop = models.BooleanField(
         default=False,
         verbose_name=_("Техническая остановка"),
-    )
-
-    is_hall_transition = models.BooleanField(
-        default=False,
-        verbose_name=_("Переход между залами"),
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
