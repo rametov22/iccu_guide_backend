@@ -562,6 +562,21 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                 "map_image": self._media_url(sec.hall.transition_map_image),
             }
 
+        # Объект перехода между разделами
+        section_transition_obj = None
+        if is_section_transition and sec:
+            prev_sec = None
+            for s in all_sections:
+                if s.id == sec.id:
+                    break
+                prev_sec = s
+            if prev_sec:
+                section_transition_obj = {
+                    "from_section": str(prev_sec.name),
+                    "transition_seconds": prev_sec.transition_seconds,
+                    "map_image": self._media_url(prev_sec.map_image),
+                }
+
         return {
             "session_id": session.pk,
             "status": session.status,
@@ -577,6 +592,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             "is_last_section": is_last_section,
             "is_auto_break": bool(is_auto_break),
             "hall_transition": hall_transition_obj,
+            "section_transition": section_transition_obj,
             "break_remaining_seconds": (
                 session.break_remaining_seconds
                 if (is_auto_break or is_hall_transition or is_section_transition)
@@ -1072,9 +1088,11 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def _do_adjust_time(self, target, delta_seconds):
-        """Adjust section or break duration. delta_seconds can be positive or negative."""
-        from exhibit.models import Section
+        """Adjust running timer without changing Section in DB.
 
+        For section: shift section_started_at so remaining changes by delta.
+        For break: adjust break_remaining_seconds or paused_remaining_seconds.
+        """
         session = TourSession.objects.select_related(
             "specialist__user", "current_section__hall"
         ).get(pk=self.session_id)
@@ -1082,17 +1100,21 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         if not session.current_section:
             return None
 
-        sec = Section.objects.get(pk=session.current_section_id)
-
         if target == "section":
-            new_dur = max(1, sec.duration_seconds + delta_seconds)
-            sec.duration_seconds = new_dur
-            sec.save(update_fields=["duration_seconds"])
+            if session.status == TourSession.Status.IN_PROGRESS and session.section_started_at:
+                # Сдвигаем section_started_at: +delta → started раньше (меньше remaining)
+                # -delta → started позже (больше remaining). Но нам нужно наоборот:
+                # +60 = добавить 60 сек к remaining → сдвинуть started вперёд
+                session.section_started_at -= timedelta(seconds=delta_seconds)
+                session.save(update_fields=["section_started_at"])
+            elif session.status == TourSession.Status.ON_BREAK and session.paused_remaining_seconds is not None:
+                session.paused_remaining_seconds = max(1, session.paused_remaining_seconds + delta_seconds)
+                session.save(update_fields=["paused_remaining_seconds"])
 
         elif target == "break":
-            new_brk = max(0, sec.break_duration_seconds + delta_seconds)
-            sec.break_duration_seconds = new_brk
-            sec.save(update_fields=["break_duration_seconds"])
+            if session.break_remaining_seconds is not None:
+                session.break_remaining_seconds = max(1, session.break_remaining_seconds + delta_seconds)
+                session.save(update_fields=["break_remaining_seconds"])
 
         # Re-fetch and build state
         session = TourSession.objects.select_related(
