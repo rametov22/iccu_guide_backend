@@ -1,11 +1,13 @@
 from datetime import timedelta
 
+from decouple import config
+
 __all__ = ("REST_FRAMEWORK", "SIMPLE_JWT")
 
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
-    "REFRESH_TOKEN_LIFETIME": timedelta(hours=5),
+    "ACCESS_TOKEN_LIFETIME": timedelta(seconds=config("JWT_ACCESS_LIFETIME_SECONDS", default=300, cast=int)),
+    "REFRESH_TOKEN_LIFETIME": timedelta(hours=config("JWT_REFRESH_LIFETIME_HOURS", default=5, cast=int)),
 }
 
 
