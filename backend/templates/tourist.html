@@ -976,6 +976,15 @@
 
 <!-- ═══════════════ SCREEN 6: DASHBOARD ═══════════════ -->
 <div class="screen" id="screen-dashboard">
+  <!-- Section transition overlay -->
+  <div class="break-overlay" id="section-transition-overlay">
+    <div class="break-icon">🚶</div>
+    <div class="break-title" id="sec-trans-title">Переход к следующему разделу</div>
+    <div class="break-sub" id="sec-trans-sub"></div>
+    <img id="sec-trans-map" src="" alt="" style="display:none;max-width:80vw;max-height:50vh;border-radius:16px;margin-top:12px">
+    <div id="sec-trans-timer" style="font-size:28px;font-weight:700;color:#c8a94a;margin-top:8px;display:none">—</div>
+  </div>
+
   <!-- Break overlay -->
   <div class="break-overlay" id="break-overlay">
     <div class="break-icon" id="break-icon">☕</div>
@@ -1023,10 +1032,9 @@
           <video id="section-video" controls playsinline style="width:100%;max-height:180px;border-radius:10px;background:#000">
           </video>
         </div>
-        <!-- Maps -->
-        <div id="maps-row" style="display:none;padding:4px 12px;display:flex;gap:8px;flex-wrap:wrap">
-          <img id="hall-map-img" src="" alt="Карта зала" style="display:none;max-height:100px;border-radius:8px;border:1px solid rgba(255,255,255,0.1)">
-          <img id="section-map-img" src="" alt="Карта раздела" style="display:none;max-height:100px;border-radius:8px;border:1px solid rgba(255,255,255,0.1)">
+        <!-- Hall map -->
+        <div id="hall-map-row" style="display:none;padding:4px 12px">
+          <img id="hall-map-img" src="" alt="Карта зала" style="max-height:100px;border-radius:8px;border:1px solid rgba(255,255,255,0.1)">
         </div>
         <div class="exhibits-grid" id="exhibits-grid">
           <div class="no-exhibits">Ожидание начала тура...</div>
@@ -1149,6 +1157,7 @@
     guideVideos: [],
     guideVideoIndex: 0,
     breakTimerInterval: null,
+    secTransInterval: null,
   };
 
   const API = '/ru/api/v1';
@@ -1600,26 +1609,53 @@
       secVideoWrap.style.display = 'none';
     }
 
-    // Map images
+    // Hall map
     const hallMapImg = document.getElementById('hall-map-img');
-    const secMapImg = document.getElementById('section-map-img');
-    const mapsRow = document.getElementById('maps-row');
-    let hasMap = false;
+    const hallMapRow = document.getElementById('hall-map-row');
     if (hall && hall.map_image) {
       hallMapImg.src = hall.map_image;
-      hallMapImg.style.display = 'block';
-      hasMap = true;
+      hallMapRow.style.display = 'block';
     } else {
-      hallMapImg.style.display = 'none';
+      hallMapRow.style.display = 'none';
     }
-    if (sec && sec.map_image) {
-      secMapImg.src = sec.map_image;
-      secMapImg.style.display = 'block';
-      hasMap = true;
+
+    // Section transition overlay (map + timer from previous section)
+    const secTransOverlay = document.getElementById('section-transition-overlay');
+    const secTransMap = document.getElementById('sec-trans-map');
+    const secTransTimer = document.getElementById('sec-trans-timer');
+    clearInterval(state.secTransInterval);
+
+    if (msg.section_transition && msg.section_transition.transition_seconds > 0) {
+      const tr = msg.section_transition;
+      document.getElementById('sec-trans-title').textContent = 'Переход к следующему разделу';
+      document.getElementById('sec-trans-sub').textContent = `Следуйте от "${tr.from_section}" к "${sec ? sec.name : ''}"`;
+      if (tr.map_image) {
+        secTransMap.src = tr.map_image;
+        secTransMap.style.display = 'block';
+      } else {
+        secTransMap.style.display = 'none';
+      }
+      // Show overlay with countdown
+      secTransOverlay.classList.add('visible');
+      let remain = tr.transition_seconds;
+      const updTransTimer = () => {
+        const m = Math.floor(remain / 60).toString().padStart(2, '0');
+        const s = (remain % 60).toString().padStart(2, '0');
+        secTransTimer.textContent = `${m}:${s}`;
+      };
+      secTransTimer.style.display = 'block';
+      updTransTimer();
+      state.secTransInterval = setInterval(() => {
+        remain = Math.max(0, remain - 1);
+        updTransTimer();
+        if (remain <= 0) {
+          clearInterval(state.secTransInterval);
+          secTransOverlay.classList.remove('visible');
+        }
+      }, 1000);
     } else {
-      secMapImg.style.display = 'none';
+      secTransOverlay.classList.remove('visible');
     }
-    mapsRow.style.display = hasMap ? 'flex' : 'none';
 
     // Break overlay
     clearInterval(state.breakTimerInterval);
@@ -1932,6 +1968,7 @@
     clearInterval(state.timerInterval);
     clearInterval(state.totalTimerInterval);
     clearInterval(state.breakTimerInterval);
+    clearInterval(state.secTransInterval);
     stopSessionPoll();
     disconnectLobby();
     localStorage.removeItem('deviceToken');
