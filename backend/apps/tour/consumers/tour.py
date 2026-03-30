@@ -231,14 +231,24 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                     self.group_name,
                     {"type": "tour.info", **state},
                 )
-                if state.get("timer"):
-                    remaining = state["timer"].get("section_remaining_seconds", 0)
-                    if (
-                        remaining > 0
-                        and state.get("status") == TourSession.Status.IN_PROGRESS
-                    ):
-                        self._cancel_timer()
-                        self._start_section_timer(remaining)
+                status = state.get("status")
+                if target == "section" and status == TourSession.Status.IN_PROGRESS:
+                    if state.get("timer"):
+                        remaining = state["timer"].get("section_remaining_seconds", 0)
+                        if remaining > 0:
+                            self._cancel_timer()
+                            self._start_section_timer(remaining)
+                elif target == "break" and state.get("break_remaining_seconds"):
+                    remaining = state["break_remaining_seconds"]
+                    self._cancel_timer()
+                    if status == TourSession.Status.ON_BREAK:
+                        self._timer_task = asyncio.ensure_future(
+                            self._break_then_advance(remaining)
+                        )
+                    elif status in (TourSession.Status.HALL_TRANSITION, TourSession.Status.SECTION_TRANSITION):
+                        self._timer_task = asyncio.ensure_future(
+                            self._transition_then_start(remaining)
+                        )
 
         elif action == "get_tour_info":
             info = await self._get_tour_info()
@@ -1102,10 +1112,8 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
         if target == "section":
             if session.status == TourSession.Status.IN_PROGRESS and session.section_started_at:
-                # Сдвигаем section_started_at: +delta → started раньше (меньше remaining)
-                # -delta → started позже (больше remaining). Но нам нужно наоборот:
-                # +60 = добавить 60 сек к remaining → сдвинуть started вперёд
-                session.section_started_at -= timedelta(seconds=delta_seconds)
+                # +60 = добавить 60 сек к remaining → started сдвигается вперёд
+                session.section_started_at += timedelta(seconds=delta_seconds)
                 session.save(update_fields=["section_started_at"])
             elif session.status == TourSession.Status.ON_BREAK and session.paused_remaining_seconds is not None:
                 session.paused_remaining_seconds = max(1, session.paused_remaining_seconds + delta_seconds)
