@@ -103,6 +103,10 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         if not self.is_specialist:
             tourist_extra = await self._get_tourist_extras(state.get("current_section"))
             state.update(tourist_extra)
+            if state.get("current_section"):
+                state["current_section"] = {
+                    k: v for k, v in state["current_section"].items() if k != "map_image"
+                }
         await self.send_json({"type": "tour_info", **state})
 
         # Специалист переподключается к активному туру — перезапускаем таймер
@@ -406,6 +410,11 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         if not self.is_specialist:
             tourist_extra = await self._get_tourist_extras(data.get("current_section"))
             data.update(tourist_extra)
+            # Турист не видит map_image в current_section — он получает её через section_transition
+            if data.get("current_section"):
+                data["current_section"] = {
+                    k: v for k, v in data["current_section"].items() if k != "map_image"
+                }
         await self.send_json({"type": "tour_info", **data})
 
     async def tour_finished(self, event):
@@ -632,15 +641,33 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def _get_tourist_extras(self, current_section):
-        """Доп. данные для туриста: видео гида текущего раздела + экспонаты."""
+        """Доп. данные для туриста: видео гида текущего раздела + экспонаты + переход."""
         from guide.models import GuideVideo
-        from exhibit.models import Exhibit
+        from exhibit.models import Exhibit, Section
 
-        result = {"guide_videos": [], "exhibits": []}
+        result = {"guide_videos": [], "exhibits": [], "section_transition": None}
 
         section_id = current_section.get("id") if current_section else None
         if not section_id:
             return result
+
+        # Переход между разделами — берём предыдущий раздел и его карту/время
+        all_sections = list(
+            Section.objects.filter(is_active=True)
+            .order_by("hall__order", "order")
+        )
+        prev_sec = None
+        for s in all_sections:
+            if s.id == section_id:
+                break
+            prev_sec = s
+
+        if prev_sec and prev_sec.transition_seconds > 0:
+            result["section_transition"] = {
+                "from_section": str(prev_sec.name),
+                "transition_seconds": prev_sec.transition_seconds,
+                "map_image": self._media_url(prev_sec.map_image),
+            }
 
         # Видео гида для текущего раздела
         guide_id = None

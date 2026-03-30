@@ -15,6 +15,7 @@ class TourRatingView(APIView):
     Body: {"device_token": "...", "rating": 4, "comment": "..."}
     """
 
+    authentication_classes = []
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):

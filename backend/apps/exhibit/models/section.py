@@ -55,7 +55,12 @@ class Section(models.Model):
         upload_to="sections/maps/",
         blank=True,
         null=True,
-        verbose_name=_("Карта раздела"),
+        verbose_name=_("Карта перехода к след. разделу"),
+    )
+
+    transition_seconds = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_("Время перехода к след. разделу (сек)"),
     )
 
     is_active = models.BooleanField(
