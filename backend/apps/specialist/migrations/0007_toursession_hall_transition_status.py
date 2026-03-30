@@ -16,6 +16,7 @@ class Migration(migrations.Migration):
                     ("waiting", "Ожидание подключений"),
                     ("in_progress", "Тур идёт"),
                     ("on_break", "Перерыв"),
+                    ("section_transition", "Переход между разделами"),
                     ("hall_transition", "Переход между залами"),
                     ("finished", "Завершён"),
                 ],

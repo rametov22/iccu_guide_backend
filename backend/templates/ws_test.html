@@ -228,6 +228,8 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Segoe UI',system-
 .sb-waiting{background:rgba(59,130,246,.12);color:#60A5FA;border:1px solid rgba(59,130,246,.25);}
 .sb-in_progress{background:rgba(34,197,94,.12);color:#4ADE80;border:1px solid rgba(34,197,94,.25);}
 .sb-on_break{background:rgba(245,158,11,.12);color:#FBBF24;border:1px solid rgba(245,158,11,.25);}
+.sb-hall_transition{background:rgba(139,92,246,.12);color:#A78BFA;border:1px solid rgba(139,92,246,.25);}
+.sb-section_transition{background:rgba(99,102,241,.12);color:#818CF8;border:1px solid rgba(99,102,241,.25);}
 .sb-finished{background:rgba(168,85,247,.12);color:#C084FC;border:1px solid rgba(168,85,247,.25);}
 
 /* WS dot */
@@ -639,7 +641,7 @@ function confirmFinish() {
 /* ══ STATUS ═════════════════════════════════════════ */
 function setStatus(st) {
   sessionStatus = st;
-  const labels = {waiting:'Ожидание',in_progress:'Активен',on_break:'Перерыв',hall_transition:'Переход',finished:'Завершён'};
+  const labels = {waiting:'Ожидание',in_progress:'Активен',on_break:'Перерыв',section_transition:'Переход (раздел)',hall_transition:'Переход (зал)',finished:'Завершён'};
   const badge = document.getElementById('dh-badge');
   badge.className = `s-badge sb-${st}`;
   badge.textContent = labels[st]||st;
@@ -810,6 +812,14 @@ function applyTourInfo(d) {
     startBreakTimer();
     showCtrl('break_auto');
     toast('Переход в зал: ' + (hall?.name || '—'), 'info');
+
+  } else if (status === 'section_transition') {
+    stopTimer();
+    isOnBreak = true;
+    breakRemain = d.break_remaining_seconds || 0;
+    startBreakTimer();
+    showCtrl('break_auto');
+    toast('Переход к разделу: ' + (sec?.name || '—'), 'info');
 
   } else if (status === 'on_break') {
     stopTimer();

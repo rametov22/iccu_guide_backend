@@ -1567,7 +1567,8 @@
       waiting: ['waiting', 'Ожидание'],
       in_progress: ['in-progress', 'В туре'],
       on_break: ['on-break', 'Перерыв'],
-      hall_transition: ['on-break', 'Переход'],
+      section_transition: ['on-break', 'Переход (раздел)'],
+      hall_transition: ['on-break', 'Переход (зал)'],
       finished: ['finished', 'Завершён'],
     };
     const [cls, label] = statusMap[state.tourStatus] || ['waiting', state.tourStatus];
@@ -1625,7 +1626,7 @@
     const secTransTimer = document.getElementById('sec-trans-timer');
     clearInterval(state.secTransInterval);
 
-    if (msg.section_transition && msg.section_transition.transition_seconds > 0) {
+    if (msg.section_transition && msg.section_transition.transition_seconds > 0 && state.tourStatus !== 'section_transition') {
       const tr = msg.section_transition;
       document.getElementById('sec-trans-title').textContent = 'Переход к следующему разделу';
       document.getElementById('sec-trans-sub').textContent = `Следуйте от "${tr.from_section}" к "${sec ? sec.name : ''}"`;
@@ -1666,15 +1667,32 @@
     const breakMapImg = document.getElementById('break-map-image');
     const breakTimerEl = document.getElementById('break-timer');
 
-    if (state.tourStatus === 'on_break' || state.tourStatus === 'hall_transition') {
+    if (state.tourStatus === 'on_break' || state.tourStatus === 'hall_transition' || state.tourStatus === 'section_transition') {
       breakOverlay.classList.add('visible');
 
       if (state.tourStatus === 'hall_transition') {
+        const ht = msg.hall_transition;
         breakIcon.textContent = '🚶';
         breakTitle.textContent = 'Переход в зал';
         breakSub.textContent = hall ? `Следуйте к залу: ${hall.name}` : 'Переход между залами';
-        if (msg.hall_transition_map_image) {
-          breakMapImg.src = msg.hall_transition_map_image;
+        if (ht && ht.map_image) {
+          breakMapImg.src = ht.map_image;
+          breakMapImg.style.display = 'block';
+        } else {
+          breakMapImg.style.display = 'none';
+        }
+        if (msg.break_remaining_seconds) {
+          startBreakCountdown(msg.break_remaining_seconds);
+        }
+      } else if (state.tourStatus === 'section_transition') {
+        breakIcon.textContent = '🚶';
+        breakTitle.textContent = 'Переход к разделу';
+        const secName = msg.current_section?.name || '';
+        breakSub.textContent = secName ? `Следуйте к разделу: ${secName}` : 'Переход между разделами';
+        // Показываем карту перехода из section_transition (от предыдущего раздела)
+        const secTr = msg.section_transition;
+        if (secTr && secTr.map_image) {
+          breakMapImg.src = secTr.map_image;
           breakMapImg.style.display = 'block';
         } else {
           breakMapImg.style.display = 'none';
@@ -1720,7 +1738,7 @@
     }
 
     // If in_progress and we're on waiting screen → go to dashboard
-    if (['in_progress', 'on_break', 'hall_transition'].includes(state.tourStatus) && document.getElementById('screen-waiting').classList.contains('active')) {
+    if (['in_progress', 'on_break', 'hall_transition', 'section_transition'].includes(state.tourStatus) && document.getElementById('screen-waiting').classList.contains('active')) {
       showScreen('dashboard');
     }
 

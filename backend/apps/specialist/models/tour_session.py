@@ -16,6 +16,7 @@ class TourSession(models.Model):
         WAITING = "waiting", _("Ожидание подключений")
         IN_PROGRESS = "in_progress", _("Тур идёт")
         ON_BREAK = "on_break", _("Перерыв")
+        SECTION_TRANSITION = "section_transition", _("Переход между разделами")
         HALL_TRANSITION = "hall_transition", _("Переход между залами")
         FINISHED = "finished", _("Завершён")
 
