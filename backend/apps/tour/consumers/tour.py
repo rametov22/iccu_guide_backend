@@ -233,22 +233,31 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                 )
                 status = state.get("status")
                 if target == "section" and status == TourSession.Status.IN_PROGRESS:
+                    self._cancel_timer()
+                    remaining = 0
                     if state.get("timer"):
                         remaining = state["timer"].get("section_remaining_seconds", 0)
-                        if remaining > 0:
-                            self._cancel_timer()
-                            self._start_section_timer(remaining)
-                elif target == "break" and state.get("break_remaining_seconds"):
+                    if remaining > 0:
+                        self._start_section_timer(remaining)
+                    else:
+                        await self._auto_advance_section()
+                elif target == "break" and state.get("break_remaining_seconds") is not None:
                     remaining = state["break_remaining_seconds"]
                     self._cancel_timer()
-                    if status == TourSession.Status.ON_BREAK:
-                        self._timer_task = asyncio.ensure_future(
-                            self._break_then_advance(remaining)
-                        )
-                    elif status in (TourSession.Status.HALL_TRANSITION, TourSession.Status.SECTION_TRANSITION):
-                        self._timer_task = asyncio.ensure_future(
-                            self._transition_then_start(remaining)
-                        )
+                    if remaining > 0:
+                        if status == TourSession.Status.ON_BREAK:
+                            self._timer_task = asyncio.ensure_future(
+                                self._break_then_advance(remaining)
+                            )
+                        elif status in (TourSession.Status.HALL_TRANSITION, TourSession.Status.SECTION_TRANSITION):
+                            self._timer_task = asyncio.ensure_future(
+                                self._transition_then_start(remaining)
+                            )
+                    else:
+                        if status == TourSession.Status.ON_BREAK:
+                            await self._do_advance_or_finish()
+                        elif status in (TourSession.Status.HALL_TRANSITION, TourSession.Status.SECTION_TRANSITION):
+                            await self._finish_transition()
 
         elif action == "get_tour_info":
             info = await self._get_tour_info()
@@ -548,7 +557,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             session.status == TourSession.Status.ON_BREAK
             and not session.is_technical_stop
             and session.paused_remaining_seconds is None
-            and session.break_remaining_seconds
+            and session.break_remaining_seconds is not None
         )
 
         is_hall_transition = session.status == TourSession.Status.HALL_TRANSITION
@@ -604,11 +613,20 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             "hall_transition": hall_transition_obj,
             "section_transition": section_transition_obj,
             "break_remaining_seconds": (
-                session.break_remaining_seconds
+                self._calc_break_remaining(session)
                 if (is_auto_break or is_hall_transition or is_section_transition)
                 else None
             ),
         }
+
+    def _calc_break_remaining(self, session):
+        """Реальный остаток перерыва/перехода с учётом прошедшего времени."""
+        if session.break_remaining_seconds is None:
+            return None
+        if session.section_started_at:
+            elapsed = (timezone.now() - session.section_started_at).total_seconds()
+            return max(0, int(session.break_remaining_seconds - elapsed))
+        return session.break_remaining_seconds
 
     def _calc_total_remaining(self, session, timer_data):
         if not session.current_section or session.status == TourSession.Status.FINISHED:
@@ -716,7 +734,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             and prev_sec.transition_seconds > 0
         ):
             result["section_transition"] = {
-                "from_section": str(prev_sec.name),
+                "from_section": str(current_sec.name),
                 "transition_seconds": prev_sec.transition_seconds,
                 "map_image": self._media_url(prev_sec.map_image),
             }
@@ -905,6 +923,8 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         # Проверяем переход между разделами (время у текущего раздела)
         sec_transition_secs = current.transition_seconds
 
+        now = timezone.now()
+
         if hall_changed and transition_secs > 0:
             # Переход между залами
             session.current_section = next_section
@@ -912,7 +932,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             session.is_technical_stop = False
             session.paused_remaining_seconds = None
             session.break_remaining_seconds = transition_secs
-            session.section_started_at = None
+            session.section_started_at = now
             session.save(
                 update_fields=[
                     "current_section",
@@ -938,7 +958,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             session.is_technical_stop = False
             session.paused_remaining_seconds = None
             session.break_remaining_seconds = sec_transition_secs
-            session.section_started_at = None
+            session.section_started_at = now
             session.save(
                 update_fields=[
                     "current_section",
@@ -1060,9 +1080,10 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         session = TourSession.objects.get(pk=self.session_id)
         session.status = TourSession.Status.ON_BREAK
         session.break_remaining_seconds = break_secs
+        session.section_started_at = timezone.now()
         session.is_technical_stop = False
         session.save(
-            update_fields=["status", "break_remaining_seconds", "is_technical_stop"]
+            update_fields=["status", "break_remaining_seconds", "section_started_at", "is_technical_stop"]
         )
 
     @database_sync_to_async
@@ -1121,8 +1142,16 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
         elif target == "break":
             if session.break_remaining_seconds is not None:
-                session.break_remaining_seconds = max(1, session.break_remaining_seconds + delta_seconds)
-                session.save(update_fields=["break_remaining_seconds"])
+                # Считаем реальный остаток с учётом прошедшего времени
+                elapsed = 0
+                if session.section_started_at:
+                    elapsed = (timezone.now() - session.section_started_at).total_seconds()
+                actual_remaining = max(0, session.break_remaining_seconds - elapsed)
+                new_remaining = max(0, int(actual_remaining + delta_seconds))
+                now = timezone.now()
+                session.break_remaining_seconds = new_remaining
+                session.section_started_at = now
+                session.save(update_fields=["break_remaining_seconds", "section_started_at"])
 
         # Re-fetch and build state
         session = TourSession.objects.select_related(
