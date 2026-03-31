@@ -598,6 +598,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
         return {
             "session_id": session.pk,
+            "specialist_number": session.specialist.number if session.specialist else None,
             "status": session.status,
             "tourist_count": tourist_count,
             "current_section": section_data,
