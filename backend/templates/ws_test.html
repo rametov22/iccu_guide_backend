@@ -623,6 +623,21 @@ function showCtrl(state) {
       <div class="break-timer" id="break-timer-display">${fmt(breakRemain)}</div>
       ${adjustRow('break','Время перерыва')}
       <button class="btn-ctrl btn-resume" onclick="send({action:'resume_tour'})">▶ Пропустить перерыв</button>
+      <button class="btn-ctrl btn-tech" onclick="send({action:'technical_stop'})">🔧 Тех. остановка</button>
+      <button class="btn-ctrl btn-stop" onclick="confirmFinish()">■ Завершить</button>`,
+
+    hall_trans: `<div class="break-notice">🚶 Переход между залами</div>
+      <div class="break-timer" id="break-timer-display">${fmt(breakRemain)}</div>
+      ${adjustRow('break','Время перехода')}
+      <button class="btn-ctrl btn-resume" onclick="send({action:'resume_tour'})">▶ Пропустить переход</button>
+      <button class="btn-ctrl btn-tech" onclick="send({action:'technical_stop'})">🔧 Тех. остановка</button>
+      <button class="btn-ctrl btn-stop" onclick="confirmFinish()">■ Завершить</button>`,
+
+    sec_trans: `<div class="break-notice">🚶 Переход между разделами</div>
+      <div class="break-timer" id="break-timer-display">${fmt(breakRemain)}</div>
+      ${adjustRow('break','Время перехода')}
+      <button class="btn-ctrl btn-resume" onclick="send({action:'resume_tour'})">▶ Пропустить переход</button>
+      <button class="btn-ctrl btn-tech" onclick="send({action:'technical_stop'})">🔧 Тех. остановка</button>
       <button class="btn-ctrl btn-stop" onclick="confirmFinish()">■ Завершить</button>`,
 
     finished: `<div class="finished-notice">✓ Тур завершён</div>
@@ -810,7 +825,7 @@ function applyTourInfo(d) {
     isOnBreak = true;
     breakRemain = d.break_remaining_seconds || 0;
     startBreakTimer();
-    showCtrl('break_auto');
+    showCtrl('hall_trans');
     toast('Переход в зал: ' + (hall?.name || '—'), 'info');
 
   } else if (status === 'section_transition') {
@@ -818,7 +833,7 @@ function applyTourInfo(d) {
     isOnBreak = true;
     breakRemain = d.break_remaining_seconds || 0;
     startBreakTimer();
-    showCtrl('break_auto');
+    showCtrl('sec_trans');
     toast('Переход к разделу: ' + (sec?.name || '—'), 'info');
 
   } else if (status === 'on_break') {

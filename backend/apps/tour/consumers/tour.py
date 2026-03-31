@@ -206,12 +206,23 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         elif action == "resume_tour":
             result = await self._do_resume_tour()
             if result:
-                remaining, state = result
+                kind, remaining, state = result
                 await self.channel_layer.group_send(
                     self.group_name,
                     {"type": "tour.info", **state},
                 )
-                self._start_section_timer(remaining)
+                if kind == "section":
+                    self._start_section_timer(remaining)
+                elif kind == "break":
+                    status = state.get("status")
+                    if status == TourSession.Status.ON_BREAK:
+                        self._timer_task = asyncio.ensure_future(
+                            self._break_then_advance(remaining)
+                        )
+                    elif status in (TourSession.Status.HALL_TRANSITION, TourSession.Status.SECTION_TRANSITION):
+                        self._timer_task = asyncio.ensure_future(
+                            self._transition_then_start(remaining)
+                        )
 
         elif action == "finish_tour":
             self._cancel_timer()
@@ -566,17 +577,17 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         # Объект перехода между залами
         hall_transition_obj = None
         if is_hall_transition and sec:
-            # Находим предыдущий зал (откуда идём)
+            # Находим предыдущий зал и последний раздел в нём
             prev_hall_name = None
-            seen_hall_ids = []
+            prev_section_name = None
             for s in all_sections:
                 if s.hall_id == sec.hall_id:
                     break
-                if s.hall_id not in seen_hall_ids:
-                    seen_hall_ids.append(s.hall_id)
-                    prev_hall_name = str(s.hall.name)
+                prev_hall_name = str(s.hall.name)
+                prev_section_name = str(s.name)
             hall_transition_obj = {
                 "from_hall": prev_hall_name,
+                "from_section": prev_section_name,
                 "transition_seconds": sec.hall.transition_seconds,
                 "map_image": self._media_url(sec.hall.transition_map_image),
             }
@@ -1060,21 +1071,48 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         session = TourSession.objects.select_related("current_section").get(
             pk=self.session_id
         )
-        now = timezone.now()
 
-        remaining = 0
-        if session.section_started_at and session.current_section:
-            elapsed = (now - session.section_started_at).total_seconds()
-            total = session.current_section.duration_seconds
-            remaining = max(0, int(total - elapsed))
+        if session.status == TourSession.Status.IN_PROGRESS:
+            # Пауза раздела — сохраняем остаток секции
+            now = timezone.now()
+            remaining = 0
+            if session.section_started_at and session.current_section:
+                elapsed = (now - session.section_started_at).total_seconds()
+                total = session.current_section.duration_seconds
+                remaining = max(0, int(total - elapsed))
+            session.paused_remaining_seconds = remaining
+            session.break_remaining_seconds = None
+
+        elif session.status in (
+            TourSession.Status.HALL_TRANSITION,
+            TourSession.Status.SECTION_TRANSITION,
+        ):
+            # Пауза перехода — замораживаем break_remaining
+            actual = self._calc_break_remaining(session)
+            session.break_remaining_seconds = actual
+            session.paused_remaining_seconds = None
+
+        elif (
+            session.status == TourSession.Status.ON_BREAK
+            and session.break_remaining_seconds is not None
+        ):
+            # Пауза авто-перерыва — замораживаем break_remaining
+            actual = self._calc_break_remaining(session)
+            session.break_remaining_seconds = actual
+            session.paused_remaining_seconds = None
 
         session.status = TourSession.Status.ON_BREAK
-        session.paused_remaining_seconds = remaining
+        session.section_started_at = None
         session.is_technical_stop = is_technical
         session.save(
-            update_fields=["status", "paused_remaining_seconds", "is_technical_stop"]
+            update_fields=[
+                "status",
+                "section_started_at",
+                "paused_remaining_seconds",
+                "break_remaining_seconds",
+                "is_technical_stop",
+            ]
         )
-        return remaining
 
     @database_sync_to_async
     def _do_auto_break(self, break_secs):
@@ -1089,34 +1127,80 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def _do_resume_tour(self):
+        """Resume tour. Returns (kind, remaining, state).
+
+        kind: "section" — resume section timer
+              "break" — resume break/transition timer
+        """
         session = TourSession.objects.select_related(
             "specialist__user", "current_section__hall"
         ).get(pk=self.session_id)
-        remaining = session.paused_remaining_seconds or 0
 
         now = timezone.now()
-        session.status = TourSession.Status.IN_PROGRESS
-        elapsed = (
-            (session.current_section.duration_seconds - remaining)
-            if session.current_section
-            else 0
-        )
-        session.section_started_at = now - timedelta(seconds=elapsed)
-        session.paused_remaining_seconds = None
-        session.break_remaining_seconds = None
-        session.is_technical_stop = False
-        session.save(
-            update_fields=[
-                "status",
-                "section_started_at",
-                "paused_remaining_seconds",
-                "break_remaining_seconds",
-                "is_technical_stop",
-            ]
-        )
 
-        state = self._build_state_dict(session)
-        return remaining, state
+        if session.break_remaining_seconds is not None and session.break_remaining_seconds > 0:
+            # Возобновляем перерыв/переход — определяем какой статус был
+            from exhibit.models import Section
+
+            remaining = session.break_remaining_seconds
+            # Определяем тип перехода по контексту
+            all_sections = list(
+                Section.objects.filter(is_active=True)
+                .select_related("hall")
+                .order_by("hall__order", "order")
+            )
+            prev_sec = None
+            for s in all_sections:
+                if s.id == session.current_section_id:
+                    break
+                prev_sec = s
+
+            if prev_sec and prev_sec.hall_id != session.current_section.hall_id:
+                session.status = TourSession.Status.HALL_TRANSITION
+            elif prev_sec and prev_sec.transition_seconds > 0:
+                session.status = TourSession.Status.SECTION_TRANSITION
+            else:
+                session.status = TourSession.Status.ON_BREAK
+
+            session.section_started_at = now
+            session.is_technical_stop = False
+            session.save(
+                update_fields=[
+                    "status",
+                    "section_started_at",
+                    "is_technical_stop",
+                ]
+            )
+
+            state = self._build_state_dict(session)
+            return "break", remaining, state
+
+        else:
+            # Возобновляем раздел
+            remaining = session.paused_remaining_seconds or 0
+
+            session.status = TourSession.Status.IN_PROGRESS
+            elapsed = (
+                (session.current_section.duration_seconds - remaining)
+                if session.current_section
+                else 0
+            )
+            session.section_started_at = now - timedelta(seconds=elapsed)
+            session.paused_remaining_seconds = None
+            session.break_remaining_seconds = None
+            session.is_technical_stop = False
+            session.save(
+                update_fields=[
+                    "status",
+                    "section_started_at",
+                    "paused_remaining_seconds",
+                    "break_remaining_seconds",
+                    "is_technical_stop",
+                ]
+            )
+
+            state = self._build_state_dict(session)
+            return "section", remaining, state
 
     @database_sync_to_async
     def _do_adjust_time(self, target, delta_seconds):
