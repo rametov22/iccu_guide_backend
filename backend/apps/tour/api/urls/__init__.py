@@ -12,4 +12,5 @@ urlpatterns = [
     path("status/", views.TouristSessionStatusView.as_view(), name="tourist-status"),
     path("leave/", views.TouristLeaveView.as_view(), name="tourist-leave"),
     path("select-guide/", views.TouristSelectGuideView.as_view(), name="tourist-select-guide"),
+    path("kiosk-pin/", views.KioskPinView.as_view(), name="kiosk-pin"),
 ]

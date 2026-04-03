@@ -1,8 +1,8 @@
 from django.contrib import admin
 
-from .models import TouristSession, TourRating
+from .models import TouristSession, TourRating, KioskPin
 
-__all__ = ("TouristSessionAdmin", "TourRatingAdmin")
+__all__ = ("TouristSessionAdmin", "TourRatingAdmin", "KioskPinAdmin")
 
 
 @admin.register(TouristSession)
@@ -20,3 +20,15 @@ class TourRatingAdmin(admin.ModelAdmin):
     list_filter = ("rating",)
     readonly_fields = ("tourist_session", "created_at")
     search_fields = ("comment",)
+
+
+@admin.register(KioskPin)
+class KioskPinAdmin(admin.ModelAdmin):
+    list_display = ("code", "updated_at")
+
+    def has_add_permission(self, request):
+        # Только одна запись
+        if KioskPin.objects.exists():
+            return False
+        return super().has_add_permission(request)
+
