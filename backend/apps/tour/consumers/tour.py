@@ -564,10 +564,17 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             tour_session=session, is_active=True
         ).count()
 
-        # Последний ли это раздел?
+        # Позиция текущего раздела (1-based) и остаток
+        current_section_index = 0
+        remaining_sections_count = 0
         is_last_section = False
         if session.current_section and all_sections:
-            is_last_section = session.current_section_id == all_sections[-1].id
+            for i, s in enumerate(all_sections):
+                if s.id == session.current_section_id:
+                    current_section_index = i + 1
+                    remaining_sections_count = total_sections_count - current_section_index
+                    is_last_section = (i == len(all_sections) - 1)
+                    break
 
         is_auto_break = (
             session.status == TourSession.Status.ON_BREAK
@@ -623,6 +630,8 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             "total_remaining_seconds": total_remaining,
             "total_tour_seconds": total_tour_seconds,
             "total_sections_count": total_sections_count,
+            "current_section_index": current_section_index,
+            "remaining_sections_count": remaining_sections_count,
             "hall_sections": hall_sections,
             "is_technical_stop": session.is_technical_stop,
             "is_last_section": is_last_section,
@@ -652,7 +661,23 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         from exhibit.models import Section
 
         current_remaining = 0
-        if timer_data:
+
+        is_transition = session.status in (
+            TourSession.Status.HALL_TRANSITION,
+            TourSession.Status.SECTION_TRANSITION,
+        )
+        is_auto_break = (
+            session.status == TourSession.Status.ON_BREAK
+            and not session.is_technical_stop
+            and session.paused_remaining_seconds is None
+            and session.break_remaining_seconds is not None
+        )
+
+        if is_transition or is_auto_break:
+            # Остаток перехода/перерыва + полный раздел (ещё не начался)
+            break_remaining = self._calc_break_remaining(session) or 0
+            current_remaining = break_remaining + session.current_section.duration_seconds
+        elif timer_data:
             current_remaining = timer_data.get("section_remaining_seconds", 0)
 
         all_sections = list(
