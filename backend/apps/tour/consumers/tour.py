@@ -578,7 +578,6 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
         is_auto_break = (
             session.status == TourSession.Status.ON_BREAK
-            and not session.is_technical_stop
             and session.paused_remaining_seconds is None
             and session.break_remaining_seconds is not None
         )
@@ -668,7 +667,6 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         )
         is_auto_break = (
             session.status == TourSession.Status.ON_BREAK
-            and not session.is_technical_stop
             and session.paused_remaining_seconds is None
             and session.break_remaining_seconds is not None
         )
