@@ -23,6 +23,7 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
         super().__init__(*args, **kwargs)
         self.device_token = None
         self.personal_group = None
+        self._base_url = ""
 
     async def connect(self):
         query_string = self.scope.get("query_string", b"").decode()
@@ -37,6 +38,11 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
         if not tourist:
             await self.close(code=4001)
             return
+
+        headers = dict(self.scope.get("headers", []))
+        host = headers.get(b"host", b"").decode()
+        scheme = "https" if headers.get(b"x-forwarded-proto", b"").decode() == "https" else "http"
+        self._base_url = f"{scheme}://{host}" if host else ""
 
         await self.channel_layer.group_add(LOBBY_GROUP, self.channel_name)
 
@@ -88,6 +94,7 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def _get_specialists(self):
+        base_url = self._base_url
         from specialist.models import Specialist, TourSession
 
         specialists = (
@@ -103,7 +110,7 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
         result = []
         for s in specialists:
             session = s.sessions.filter(status=TourSession.Status.WAITING).first()
-            avatar_url = s.avatar.url if s.avatar else None
+            avatar_url = f"{base_url}{s.avatar.url}" if s.avatar else None
             result.append({
                 "id": s.id,
                 "name": s.name,
