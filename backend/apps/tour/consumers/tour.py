@@ -1129,6 +1129,11 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             session.break_remaining_seconds = actual
             session.paused_remaining_seconds = None
 
+        if is_technical:
+            session.pre_stop_status = session.status
+        else:
+            session.pre_stop_status = None
+
         session.status = TourSession.Status.ON_BREAK
         session.section_started_at = None
         session.is_technical_stop = is_technical
@@ -1139,6 +1144,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                 "paused_remaining_seconds",
                 "break_remaining_seconds",
                 "is_technical_stop",
+                "pre_stop_status",
             ]
         )
 
@@ -1192,32 +1198,15 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         elif current_status == TourSession.Status.ON_BREAK:
 
             if session.is_technical_stop and session.break_remaining_seconds is not None and session.break_remaining_seconds > 0:
-                # Тех. остановка во время перерыва/перехода → возобновляем
-                from exhibit.models import Section
-
+                # Тех. остановка во время перерыва/перехода → возобновляем в pre_stop_status
                 remaining = session.break_remaining_seconds
-                all_sections = list(
-                    Section.objects.filter(is_active=True)
-                    .select_related("hall")
-                    .order_by("hall__order", "order")
-                )
-                prev_sec = None
-                for s in all_sections:
-                    if s.id == session.current_section_id:
-                        break
-                    prev_sec = s
-
-                if prev_sec and prev_sec.hall_id != session.current_section.hall_id:
-                    session.status = TourSession.Status.HALL_TRANSITION
-                elif prev_sec and prev_sec.transition_seconds > 0:
-                    session.status = TourSession.Status.SECTION_TRANSITION
-                else:
-                    session.status = TourSession.Status.ON_BREAK
-
+                restore_status = session.pre_stop_status or TourSession.Status.ON_BREAK
+                session.status = restore_status
                 session.section_started_at = now
                 session.is_technical_stop = False
+                session.pre_stop_status = None
                 session.save(
-                    update_fields=["status", "section_started_at", "is_technical_stop"]
+                    update_fields=["status", "section_started_at", "is_technical_stop", "pre_stop_status"]
                 )
                 state = self._build_state_dict(session)
                 return "break", remaining, state
@@ -1245,11 +1234,12 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                 session.paused_remaining_seconds = None
                 session.break_remaining_seconds = None
                 session.is_technical_stop = False
+                session.pre_stop_status = None
                 session.save(
                     update_fields=[
                         "status", "section_started_at",
                         "paused_remaining_seconds", "break_remaining_seconds",
-                        "is_technical_stop",
+                        "is_technical_stop", "pre_stop_status",
                     ]
                 )
                 state = self._build_state_dict(session)

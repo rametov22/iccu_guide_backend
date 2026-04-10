@@ -74,6 +74,15 @@ class TourSession(models.Model):
         verbose_name=_("Техническая остановка"),
     )
 
+    pre_stop_status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        null=True,
+        blank=True,
+        verbose_name=_("Статус до тех. остановки"),
+        help_text=_("Запоминается при тех. остановке, чтобы вернуться в правильный статус"),
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     started_at = models.DateTimeField(null=True, blank=True)
     finished_at = models.DateTimeField(null=True, blank=True)
