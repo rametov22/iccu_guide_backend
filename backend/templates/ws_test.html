@@ -265,6 +265,7 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Segoe UI',system-
 
     <div class="lang-row">
       <button class="lang-btn sel" onclick="setLang(this,'ru')">🇷🇺 Русский</button>
+      <button class="lang-btn" onclick="setLang(this,'en')">🇬🇧 English</button>
       <button class="lang-btn" onclick="setLang(this,'uz')">🇺🇿 O'zbek</button>
     </div>
 
@@ -435,6 +436,7 @@ html,body{height:100%;font-family:-apple-system,'SF Pro Text','Segoe UI',system-
 let JWT = null, SESSION_ID = null, ws = null;
 let tourists = [], sections = [], hallSections = [];
 let SPEC_NUMBER = null;
+let LANG = 'ru';
 let secRemain = 0, secTotal = 1;
 let timerIv = null, tourStartedAt = null, tourTimerIv = null;
 let sessionStatus = 'waiting';
@@ -443,9 +445,9 @@ let breakRemain = 0, breakIv = null;
 let isOnBreak = false, breakIsTechnical = false, breakIsAuto = false;
 
 /* ══ UTILS ══════════════════════════════════════════ */
-const API = p => `/ru/api/v1${p}`;
+const API = p => `/${LANG}/api/v1${p}`;
 const WS_PROTO = location.protocol === 'https:' ? 'wss' : 'ws';
-const WSURL = sid => `${WS_PROTO}://${location.host}/ws/tour/${sid}/?role=specialist&token=${JWT}`;
+const WSURL = sid => `${WS_PROTO}://${location.host}/ws/tour/${sid}/?role=specialist&token=${JWT}&lang=${LANG}`;
 
 async function req(method, path, body=null, auth=true) {
   const h = {'Content-Type':'application/json'};
@@ -492,6 +494,7 @@ function fmtTime(iso) {
 
 /* ══ LANG ═══════════════════════════════════════════ */
 function setLang(btn, l) {
+  LANG = l;
   document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('sel'));
   btn.classList.add('sel');
 }

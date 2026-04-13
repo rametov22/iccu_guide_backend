@@ -1,5 +1,7 @@
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from django.conf import settings
+from django.utils import translation
 
 from tour.models import TouristSession
 
@@ -24,11 +26,15 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
         self.device_token = None
         self.personal_group = None
         self._base_url = ""
+        self._lang = settings.LANGUAGE_CODE
 
     async def connect(self):
         query_string = self.scope.get("query_string", b"").decode()
         params = dict(p.split("=", 1) for p in query_string.split("&") if "=" in p)
         self.device_token = params.get("device_token")
+        lang = params.get("lang", "").lower()
+        if lang in ("ru", "en", "uz"):
+            self._lang = lang
 
         if not self.device_token:
             await self.close(code=4001)
@@ -94,6 +100,7 @@ class LobbyConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def _get_specialists(self):
+        translation.activate(self._lang)
         base_url = self._base_url
         from specialist.models import Specialist, TourSession
 

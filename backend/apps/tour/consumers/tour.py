@@ -4,7 +4,7 @@ from datetime import timedelta
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.conf import settings
-from django.utils import timezone
+from django.utils import timezone, translation
 
 from specialist.models import TourSession
 from tour.models import TouristSession
@@ -32,6 +32,11 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         self.tourist_session = None
         self._timer_task = None
         self._base_url = ""
+        self._lang = settings.LANGUAGE_CODE
+
+    def _activate_lang(self):
+        """Activate the client's language for modeltranslation in sync context."""
+        translation.activate(self._lang)
 
     def _media_url(self, field):
         """Return absolute URL for a FileField/ImageField, or None."""
@@ -58,6 +63,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         params = dict(p.split("=", 1) for p in query_string.split("&") if "=" in p)
         self.is_specialist = params.get("role") == "specialist"
         self.device_token = params.get("device_token")
+        lang = params.get("lang", "").lower()
+        if lang in ("ru", "en", "uz"):
+            self._lang = lang
 
         # Build base URL from WS scope headers
         headers = dict(self.scope.get("headers", []))
@@ -743,6 +751,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
     @database_sync_to_async
     def _get_tourist_extras(self, current_section):
         """Доп. данные для туриста: видео гида текущего раздела + экспонаты + переход."""
+        self._activate_lang()
         from guide.models import GuideVideo
         from exhibit.models import Exhibit, Section
 
@@ -818,6 +827,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def _get_session_state(self):
+        self._activate_lang()
         session = TourSession.objects.select_related(
             "specialist__user", "current_section__hall"
         ).get(pk=self.session_id)
@@ -857,6 +867,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def _get_tour_info(self):
+        self._activate_lang()
         session = TourSession.objects.select_related(
             "specialist__user", "current_section__hall"
         ).get(pk=self.session_id)
@@ -886,6 +897,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def _do_start_tour(self):
+        self._activate_lang()
         from exhibit.models import Section
 
         session = TourSession.objects.select_related("specialist__user").get(
@@ -930,6 +942,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def _do_next_section(self):
+        self._activate_lang()
         from exhibit.models import Section
 
         session = TourSession.objects.select_related(
@@ -1046,6 +1059,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def _do_prev_section(self):
+        self._activate_lang()
         from exhibit.models import Section
 
         session = TourSession.objects.select_related(
@@ -1167,6 +1181,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
               "break" — resume break/transition timer
               "advance" — skip break, advance to next section
         """
+        self._activate_lang()
         session = TourSession.objects.select_related(
             "specialist__user", "current_section__hall"
         ).get(pk=self.session_id)
@@ -1254,6 +1269,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         For section: shift section_started_at so remaining changes by delta.
         For break: adjust break_remaining_seconds or paused_remaining_seconds.
         """
+        self._activate_lang()
         session = TourSession.objects.select_related(
             "specialist__user", "current_section__hall"
         ).get(pk=self.session_id)

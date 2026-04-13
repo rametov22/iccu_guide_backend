@@ -1160,7 +1160,7 @@
     secTransInterval: null,
   };
 
-  const API = '/ru/api/v1';
+  const API_BASE = () => `/${state.lang}/api/v1`;
   const WS_HOST = location.host;
   const WS_PROTO = location.protocol === 'https:' ? 'wss' : 'ws';
 
@@ -1218,7 +1218,7 @@
   async function loadRules() {
     const grid = document.getElementById('rules-grid');
     try {
-      const res = await fetch(`${API}/guide/rules/`);
+      const res = await fetch(`${API_BASE()}/guide/rules/`);
       const data = await res.json();
       const rules = Array.isArray(data) ? data : (data.results || []);
       if (!rules.length) {
@@ -1257,7 +1257,7 @@
     if (state.deviceToken) {
       // Verify the stored token still exists in DB
       try {
-        const check = await fetch(`${API}/tour/status/?device_token=${state.deviceToken}`);
+        const check = await fetch(`${API_BASE()}/tour/status/?device_token=${state.deviceToken}`);
         const checkData = await check.json();
         if (checkData.token_valid === false) {
           // Token not in DB (e.g. DB was reset) — clear and re-register
@@ -1275,7 +1275,7 @@
       return;
     }
     try {
-      const res = await fetch(`${API}/tour/register/`, {
+      const res = await fetch(`${API_BASE()}/tour/register/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -1308,7 +1308,7 @@
     if (state.lobbyWs) return;
     if (!state.deviceToken) return;
 
-    const url = `${WS_PROTO}://${WS_HOST}/ws/lobby/?device_token=${state.deviceToken}`;
+    const url = `${WS_PROTO}://${WS_HOST}/ws/lobby/?device_token=${state.deviceToken}&lang=${state.lang}`;
     const lws = new WebSocket(url);
     state.lobbyWs = lws;
 
@@ -1355,7 +1355,7 @@
     if (!state.deviceToken) return;
     state.pollInterval = setInterval(async () => {
       try {
-        const res = await fetch(`${API}/tour/status/?device_token=${state.deviceToken}`);
+        const res = await fetch(`${API_BASE()}/tour/status/?device_token=${state.deviceToken}`);
         const data = await res.json();
         if (data.session_id && !state.sessionId) {
           stopSessionPoll();
@@ -1375,7 +1375,7 @@
   async function loadGuides() {
     const scroll = document.getElementById('guides-scroll');
     try {
-      const res = await fetch(`${API}/guide/guides/`);
+      const res = await fetch(`${API_BASE()}/guide/guides/`);
       const data = await res.json();
       const guides = Array.isArray(data) ? data : (data.results || []);
 
@@ -1444,7 +1444,7 @@
     // Save guide selection on server
     if (state.deviceToken) {
       try {
-        await fetch(`${API}/tour/select-guide/`, {
+        await fetch(`${API_BASE()}/tour/select-guide/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ device_token: state.deviceToken, guide_id: g.id }),
@@ -1460,7 +1460,7 @@
     // Initial HTTP fetch; lobby WS will push updates after this
     const scroll = document.getElementById('specialists-scroll');
     try {
-      const res = await fetch(`${API}/guide/specialists/`);
+      const res = await fetch(`${API_BASE()}/guide/specialists/`);
       const data = await res.json();
       const specs = Array.isArray(data) ? data : (data.results || []);
       renderSpecialistList(specs);
@@ -1500,7 +1500,7 @@
     errEl.textContent = '';
     if (!state.deviceToken) { errEl.textContent = 'Сначала пройдите регистрацию'; return; }
     try {
-      const res = await fetch(`${API}/tour/join/`, {
+      const res = await fetch(`${API_BASE()}/tour/join/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ specialist_number: specNumber, device_token: state.deviceToken }),
@@ -1523,7 +1523,7 @@
   // ── WebSocket ─────────────────────────────────────────────
   function connectWS() {
     if (state.ws) state.ws.close();
-    const url = `${WS_PROTO}://${WS_HOST}/ws/tour/${state.sessionId}/?device_token=${state.deviceToken}`;
+    const url = `${WS_PROTO}://${WS_HOST}/ws/tour/${state.sessionId}/?device_token=${state.deviceToken}&lang=${state.lang}`;
     setWsStatus('connecting');
     state.ws = new WebSocket(url);
 
@@ -1911,7 +1911,7 @@
     // Notify server
     if (state.deviceToken) {
       try {
-        await fetch(`${API}/tour/leave/`, {
+        await fetch(`${API_BASE()}/tour/leave/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ device_token: state.deviceToken }),
@@ -1935,7 +1935,7 @@
     if (!state.selectedRating) { showToast('Выберите оценку от 1 до 5 звёзд'); return; }
     const comment = document.getElementById('rating-comment').value.trim();
     try {
-      await fetch(`${API}/tour/rating/`, {
+      await fetch(`${API_BASE()}/tour/rating/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
