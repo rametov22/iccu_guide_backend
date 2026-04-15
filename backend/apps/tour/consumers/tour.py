@@ -703,6 +703,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         for s in all_sections:
             if s.id == session.current_section_id:
                 found_current = True
+                # Если НЕ auto_break — перерыв текущего раздела ещё впереди
+                if not is_auto_break:
+                    future_seconds += s.break_duration_seconds
                 continue
             if found_current:
                 future_seconds += s.duration_seconds + s.break_duration_seconds
