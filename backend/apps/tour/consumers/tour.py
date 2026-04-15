@@ -679,10 +679,14 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             and session.break_remaining_seconds is not None
         )
 
-        if is_transition or is_auto_break:
-            # Остаток перехода/перерыва + полный раздел (ещё не начался)
+        if is_transition:
+            # Transition: current_section уже next → остаток перехода + полный раздел
             break_remaining = self._calc_break_remaining(session) or 0
             current_remaining = break_remaining + session.current_section.duration_seconds
+        elif is_auto_break:
+            # Auto-break: current_section — только что завершённый → только остаток перерыва
+            break_remaining = self._calc_break_remaining(session) or 0
+            current_remaining = break_remaining
         elif timer_data:
             current_remaining = timer_data.get("section_remaining_seconds", 0)
 
