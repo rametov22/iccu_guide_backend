@@ -696,22 +696,27 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             .select_related("hall")
         )
 
-        current_hall_id = session.current_section.hall_id
-        found_current = False
         future_seconds = 0
-        seen_halls = set()
+        seen_halls = {session.current_section.hall_id}
+        found_current = False
+        prev_section = None
         for s in all_sections:
             if s.id == session.current_section_id:
                 found_current = True
-                # Если НЕ auto_break — перерыв текущего раздела ещё впереди
+                # Перерыв текущего раздела ещё впереди (кроме auto_break — там break_remaining уже считается)
                 if not is_auto_break:
                     future_seconds += s.break_duration_seconds
+                prev_section = s
                 continue
             if found_current:
-                future_seconds += s.duration_seconds + s.break_duration_seconds
-                if s.hall_id != current_hall_id and s.hall_id not in seen_halls:
+                # Переход ПЕРЕД разделом s (из prev_section в s)
+                if s.hall_id != prev_section.hall_id and s.hall_id not in seen_halls:
                     seen_halls.add(s.hall_id)
                     future_seconds += s.hall.transition_seconds
+                elif prev_section.transition_seconds > 0:
+                    future_seconds += prev_section.transition_seconds
+                future_seconds += s.duration_seconds + s.break_duration_seconds
+                prev_section = s
 
         return int(current_remaining + future_seconds)
 
