@@ -834,7 +834,6 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                 "description": str(ex.description) if ex.description else "",
                 "video": self._media_url(ex.video),
                 "audio": self._media_url(ex.audio),
-                "thumbnail": self._media_url(ex.thumbnail),
                 "images": images,
                 "has_video": bool(ex.video),
                 "has_audio": bool(ex.audio),

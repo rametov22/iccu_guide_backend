@@ -43,13 +43,6 @@ class Exhibit(models.Model):
         verbose_name=_("Аудио"),
     )
 
-    thumbnail = models.ImageField(
-        upload_to="exhibits/thumbnails/",
-        blank=True,
-        null=True,
-        verbose_name=_("Превью"),
-    )
-
     order = models.PositiveIntegerField(
         default=0,
         verbose_name=_("Порядок"),

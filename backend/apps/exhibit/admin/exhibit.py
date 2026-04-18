@@ -30,6 +30,7 @@ class ExhibitAdmin(TabbedTranslationAdmin):
 
     @admin.display(description="Фото")
     def thumb(self, obj):
-        if obj.thumbnail:
-            return format_html('<img src="{}" style="max-height:50px;border-radius:4px">', obj.thumbnail.url)
+        first = obj.images.first()
+        if first and first.image:
+            return format_html('<img src="{}" style="max-height:50px;border-radius:4px">', first.image.url)
         return "—"
