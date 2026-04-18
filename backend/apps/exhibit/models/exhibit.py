@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-__all__ = ("Exhibit",)
+__all__ = ("Exhibit", "ExhibitImage")
 
 
 class Exhibit(models.Model):
@@ -36,6 +36,13 @@ class Exhibit(models.Model):
         help_text=_("Видео экспонатов"),
     )
 
+    audio = models.FileField(
+        upload_to="exhibits/audio/",
+        blank=True,
+        null=True,
+        verbose_name=_("Аудио"),
+    )
+
     thumbnail = models.ImageField(
         upload_to="exhibits/thumbnails/",
         blank=True,
@@ -60,3 +67,30 @@ class Exhibit(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class ExhibitImage(models.Model):
+    exhibit = models.ForeignKey(
+        Exhibit,
+        on_delete=models.CASCADE,
+        related_name="images",
+        verbose_name=_("Экспонат"),
+    )
+
+    image = models.ImageField(
+        upload_to="exhibits/images/",
+        verbose_name=_("Фото"),
+    )
+
+    order = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_("Порядок"),
+    )
+
+    class Meta:
+        verbose_name = _("Фото экспоната")
+        verbose_name_plural = _("Фото экспонатов")
+        ordering = ["order", "id"]
+
+    def __str__(self):
+        return f"{self.exhibit.title} — #{self.order}"

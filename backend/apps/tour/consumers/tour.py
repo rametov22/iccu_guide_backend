@@ -824,14 +824,21 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         # Экспонаты текущего раздела
         for ex in (
             Exhibit.objects.filter(section_id=section_id, is_active=True)
+            .prefetch_related("images")
             .order_by("order", "title")
         ):
+            images = [self._media_url(img.image) for img in ex.images.all()]
             result["exhibits"].append({
                 "id": ex.id,
                 "title": str(ex.title) if ex.title else "",
                 "description": str(ex.description) if ex.description else "",
                 "video": self._media_url(ex.video),
+                "audio": self._media_url(ex.audio),
                 "thumbnail": self._media_url(ex.thumbnail),
+                "images": images,
+                "has_video": bool(ex.video),
+                "has_audio": bool(ex.audio),
+                "has_photos": bool(images),
                 "order": ex.order,
             })
 
