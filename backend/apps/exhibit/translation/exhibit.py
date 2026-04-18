@@ -7,4 +7,4 @@ __all__ = ("ExhibitTranslationOptions",)
 
 @register(Exhibit)
 class ExhibitTranslationOptions(TranslationOptions):
-    fields = ("title", "description", "video")
+    fields = ("title", "description", "video", "audio")
