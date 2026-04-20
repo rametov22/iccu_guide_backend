@@ -8,6 +8,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from specialist.models import TourSession
+from tour.models import TouristSession
 
 __all__ = ("SpecialistLoginView", "SpecialistLogoutView")
 
@@ -79,9 +80,15 @@ class SpecialistLogoutView(APIView):
         )
 
         if session:
+            now = timezone.now()
             session.status = TourSession.Status.FINISHED
-            session.finished_at = timezone.now()
+            session.finished_at = now
             session.save(update_fields=["status", "finished_at"])
+
+            # Деактивируем туристов — их токены освобождаются
+            TouristSession.objects.filter(
+                tour_session=session, is_active=True
+            ).update(is_active=False, left_at=now)
 
             channel_layer = get_channel_layer()
             group_name = f"tour_{session.pk}"
