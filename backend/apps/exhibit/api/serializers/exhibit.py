@@ -7,11 +7,10 @@ __all__ = ("ExhibitSerializer",)
 
 class ExhibitSerializer(serializers.ModelSerializer):
     video = serializers.SerializerMethodField()
-    thumbnail = serializers.SerializerMethodField()
 
     class Meta:
         model = Exhibit
-        fields = ("id", "title", "description", "video", "thumbnail", "order")
+        fields = ("id", "title", "description", "video", "order")
 
     def _abs(self, url):
         request = self.context.get("request")
@@ -19,6 +18,3 @@ class ExhibitSerializer(serializers.ModelSerializer):
 
     def get_video(self, obj):
         return self._abs(obj.video.url) if obj.video else None
-
-    def get_thumbnail(self, obj):
-        return self._abs(obj.thumbnail.url) if obj.thumbnail else None
