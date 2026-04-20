@@ -1325,10 +1325,17 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def _do_finish_tour(self):
+        now = timezone.now()
         session = TourSession.objects.get(pk=self.session_id)
         session.status = TourSession.Status.FINISHED
-        session.finished_at = timezone.now()
+        session.finished_at = now
         session.save(update_fields=["status", "finished_at"])
+
+        # Деактивируем всех туристов этой сессии — их токены освобождаются,
+        # и их нельзя будет снова добавить в новый тур без повторной регистрации.
+        TouristSession.objects.filter(
+            tour_session=session, is_active=True
+        ).update(is_active=False, left_at=now)
 
     @database_sync_to_async
     def _do_kick_tourist(self, tourist_id):

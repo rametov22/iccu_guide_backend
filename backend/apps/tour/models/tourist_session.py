@@ -7,14 +7,18 @@ MAX_DEVICE_NUMBER = 600
 
 
 def _next_device_token():
-    """Выдаёт следующий свободный номер 1..600 по кругу."""
+    """Выдаёт следующий свободный номер 1..600 по кругу.
+
+    Учитываются только активные сессии — неактивные (завершённые туры)
+    освобождают свой токен для переиспользования.
+    """
     used = set(
-        TouristSession.objects.values_list("device_token", flat=True)
+        TouristSession.objects.filter(is_active=True).values_list("device_token", flat=True)
     )
     for n in range(1, MAX_DEVICE_NUMBER + 1):
         if n not in used:
             return n
-    # Все 600 заняты — fallback
+    # Все 600 заняты активными — fallback
     return 1
 
 
@@ -42,7 +46,6 @@ class TouristSession(models.Model):
     )
 
     device_token = models.PositiveIntegerField(
-        unique=True,
         verbose_name=_("Номер устройства"),
         help_text=_("Число от 1 до 600"),
     )
@@ -90,6 +93,13 @@ class TouristSession(models.Model):
         verbose_name = _("Сессия туриста")
         verbose_name_plural = _("Сессии туристов")
         ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["device_token"],
+                condition=models.Q(is_active=True),
+                name="unique_active_device_token",
+            ),
+        ]
 
     def __str__(self):
         return f"Tourist #{self.device_token} ({'active' if self.is_active else 'inactive'})"
