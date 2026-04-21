@@ -26,6 +26,8 @@ class GuideVideo(models.Model):
 
     video = models.FileField(
         upload_to="guides/videos/",
+        blank=True,
+        null=True,
         verbose_name=_("Видео"),
     )
 
