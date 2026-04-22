@@ -22,14 +22,14 @@ class GuideVideoSerializer(serializers.ModelSerializer):
 
 class GuideSerializer(serializers.ModelSerializer):
     """Лёгкий сериализатор для списка гидов (выбор перед туром)."""
-    preview_video = serializers.SerializerMethodField()
+    video = serializers.SerializerMethodField()
     thumbnail = serializers.SerializerMethodField()
 
     class Meta:
         model = Guide
-        fields = ("id", "name", "preview_video", "thumbnail", "is_sign_language")
+        fields = ("id", "name", "video", "thumbnail", "is_sign_language")
 
-    def get_preview_video(self, obj):
+    def get_video(self, obj):
         if not obj.preview_video:
             return None
         request = self.context.get("request")
