@@ -7,4 +7,4 @@ __all__ = ("GuideTranslationOptions",)
 
 @register(Guide)
 class GuideTranslationOptions(TranslationOptions):
-    fields = ("name",)
+    fields = ("name", "preview_video")

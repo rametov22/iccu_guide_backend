@@ -22,6 +22,14 @@ class Guide(models.Model):
         verbose_name=_("Превью"),
     )
 
+    preview_video = models.FileField(
+        upload_to="guides/previews/",
+        blank=True,
+        null=True,
+        verbose_name=_("Превью-видео"),
+        help_text=_("Короткое видео, показывается в списке гидов при выборе"),
+    )
+
     order = models.PositiveIntegerField(
         default=0,
         verbose_name=_("Порядок"),
