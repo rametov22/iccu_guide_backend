@@ -10,4 +10,5 @@ urlpatterns = [
     path("specialists/", views.SpecialistListView.as_view(), name="specialist-list"),
     path("guides/", views.GuideListView.as_view(), name="guide-list"),
     path("backgrounds/", views.BackgroundListView.as_view(), name="background-list"),
+    path("media-bundle/", views.MediaBundleView.as_view(), name="media-bundle"),
 ]
