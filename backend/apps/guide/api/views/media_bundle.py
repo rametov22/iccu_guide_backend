@@ -51,8 +51,7 @@ class MediaBundleView(APIView):
                 for ex in sec.exhibits.filter(is_active=True).order_by("order"):
                     exhibits_data.append({
                         "id": ex.id,
-                        "title": ex.title,
-                        "description": ex.description,
+                        "name": ex.title,
                         "video": self._file_url(ex.video),
                         "audio": self._file_url(ex.audio),
                         "images": [self._file_url(img.image) for img in ex.images.all()],
@@ -63,8 +62,6 @@ class MediaBundleView(APIView):
                         "id": gv.id,
                         "guide_id": gv.guide_id,
                         "video": self._file_url(gv.video),
-                        "subtitles": gv.subtitles,
-                        "order": gv.order,
                     }
                     for gv in sec.guide_videos.all().order_by("order")
                 ]
@@ -72,10 +69,6 @@ class MediaBundleView(APIView):
                 sections_data.append({
                     "id": sec.id,
                     "name": sec.name,
-                    "description": sec.description,
-                    "duration_seconds": sec.duration_seconds,
-                    "break_duration_seconds": sec.break_duration_seconds,
-                    "transition_seconds": sec.transition_seconds,
                     "video": self._file_url(sec.video),
                     "map_image": self._file_url(sec.map_image),
                     "exhibits": exhibits_data,
@@ -85,8 +78,6 @@ class MediaBundleView(APIView):
             halls_data.append({
                 "id": hall.id,
                 "name": hall.name,
-                "description": hall.description,
-                "transition_seconds": hall.transition_seconds,
                 "map_image": self._file_url(hall.map_image),
                 "transition_map_image": self._file_url(hall.transition_map_image),
                 "sections": sections_data,
@@ -98,7 +89,6 @@ class MediaBundleView(APIView):
                 "name": g.name,
                 "thumbnail": self._file_url(g.thumbnail),
                 "preview_video": self._file_url(g.preview_video),
-                "is_sign_language": g.is_sign_language,
             }
             for g in Guide.objects.filter(is_active=True).order_by("order", "name")
         ]
