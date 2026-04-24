@@ -67,8 +67,8 @@ class SectionAdmin(TabbedTranslationAdmin):
         secs = obj.effective_duration_seconds
         m, s = divmod(secs, 60)
         return format_html(
-            "<b>{}:{:02d}</b> — max видео гида + 1 сек. Менять нельзя, задаётся автоматически.",
-            m, s,
+            "<b>{}</b> — max видео гида + 1 сек. Менять нельзя, задаётся автоматически.",
+            f"{m}:{s:02d}",
         )
 
     @admin.display(description="Длительность", ordering="duration_seconds")
@@ -77,7 +77,7 @@ class SectionAdmin(TabbedTranslationAdmin):
         m, s = divmod(secs, 60)
         has_gv = obj.guide_videos.exists()
         label = "из видео" if has_gv else "вручную"
-        return format_html("{}:{:02d} <small>({})</small>", m, s, label)
+        return format_html("{} <small>({})</small>", f"{m}:{s:02d}", label)
 
     @admin.display(description="Карта")
     def map_thumb(self, obj):
