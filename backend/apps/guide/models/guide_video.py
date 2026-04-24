@@ -83,14 +83,23 @@ class GuideVideo(models.Model):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # После сохранения файла пробуем определить длительность
-        if self.video and not self.duration_seconds:
+        # После сохранения файлов считываем длительность по всем языкам
+        # и берём максимум — чтобы таймер секции покрыл самое длинное видео
+        durations = []
+        for field_name in ("video_ru", "video_en", "video_uz", "video"):
+            file_field = getattr(self, field_name, None)
+            if not file_field:
+                continue
             try:
-                duration = _probe_video_duration(self.video.path)
+                d = _probe_video_duration(file_field.path)
             except (NotImplementedError, ValueError):
-                duration = None
-            if duration:
-                self.duration_seconds = duration
+                d = None
+            if d:
+                durations.append(d)
+        if durations:
+            new_duration = max(durations)
+            if new_duration != self.duration_seconds:
+                self.duration_seconds = new_duration
                 super().save(update_fields=["duration_seconds"])
 
     def __str__(self):
