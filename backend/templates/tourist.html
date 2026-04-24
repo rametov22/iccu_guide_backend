@@ -1,2008 +1,1170 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ICCU Tour — Турист</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ICCU — Tourist</title>
+<style>
+:root {
+  --bg: #0a0c10;
+  --card: #111318;
+  --card2: #181b23;
+  --card3: #1c2029;
+  --border: #252833;
+  --border-light: #303545;
+  --gold: #E8B84B;
+  --gold-hover: #F5CC6A;
+  --gold-dim: rgba(232,184,75,.15);
+  --red: #EF4444;
+  --green: #22C55E;
+  --text: #F0F2F8;
+  --muted: #6B7280;
+  --muted-2: #8A91A0;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --font-size: 15px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;font-family:-apple-system,'SF Pro Text','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:var(--font-size);}
+button{font-family:inherit;}
+input,textarea{font-family:inherit;}
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0d0d0d;
-      color: #fff;
-      height: 100vh;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+.bg{position:fixed;inset:0;background:
+  radial-gradient(ellipse at 20% 50%,rgba(30,40,80,.5) 0%,transparent 60%),
+  radial-gradient(ellipse at 80% 20%,rgba(80,50,10,.35) 0%,transparent 50%),
+  linear-gradient(135deg,#060810 0%,#0e1018 50%,#0a0c14 100%);z-index:0;}
 
-    /* ── BG photo ─────────────────────────────────────── */
-    .bg {
-      position: fixed;
-      inset: 0;
-      background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/a/a4/Registan_Samarkand.jpg/1920px-Registan_Samarkand.jpg') center/cover no-repeat;
-      filter: brightness(0.35);
-      z-index: 0;
-    }
+.screen{position:fixed;inset:0;z-index:10;display:none;flex-direction:column;overflow:hidden;}
+.screen.active{display:flex;}
 
-    /* ── Screens ──────────────────────────────────────── */
-    .screen {
-      display: none;
-      position: relative;
-      z-index: 1;
-      width: 100%;
-      height: 100vh;
-      align-items: center;
-      justify-content: center;
-    }
-    .screen.active { display: flex; }
+/* ═══ Buttons / chips ═══ */
+.btn{
+  padding:10px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:transparent;color:var(--text);font-size:.86rem;cursor:pointer;
+  transition:.15s;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+}
+.btn:hover{border-color:var(--border-light);background:var(--card2);}
+.btn-gold{background:var(--gold);color:#0a0c10;border-color:var(--gold);font-weight:700;}
+.btn-gold:hover{background:var(--gold-hover);}
+.btn-gold:disabled{opacity:.45;cursor:not-allowed;}
+.btn-big{padding:14px 20px;font-size:.95rem;width:100%;}
+.btn-back{background:var(--card2);border:1px solid var(--border);}
 
-    /* ── Card ─────────────────────────────────────────── */
-    .card {
-      background: rgba(18, 18, 18, 0.92);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 20px;
-      padding: 32px 28px;
-      width: 420px;
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-    .card-wide {
-      width: 680px;
-    }
-    .card-full {
-      width: calc(100vw - 40px);
-      max-width: 800px;
-    }
+.logo-emblem{
+  width:36px;height:36px;border-radius:50%;
+  background:conic-gradient(from 0deg,#E8B84B,#C8941F,#E8B84B);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.55rem;font-weight:800;color:#0a0c10;letter-spacing:.05em;
+  flex-shrink:0;
+}
+.logo-emblem.lg{width:68px;height:68px;font-size:.7rem;margin:0 auto 18px;box-shadow:0 0 36px rgba(232,184,75,.35);}
 
-    /* ── Header row ───────────────────────────────────── */
-    .header-row {
-      display: flex;
-      align-items: center;
-      margin-bottom: 24px;
-      position: relative;
-    }
-    .header-row .back-btn {
-      background: rgba(255,255,255,0.08);
-      border: none;
-      color: #fff;
-      border-radius: 8px;
-      padding: 6px 14px;
-      font-size: 13px;
-      cursor: pointer;
-      flex-shrink: 0;
-    }
-    .header-row .back-btn:hover { background: rgba(255,255,255,0.15); }
-    .header-row .logo-wrap {
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-    .header-row .session-badge {
-      margin-left: auto;
-      font-size: 11px;
-      color: #aaa;
-    }
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 20px;background:rgba(17,19,24,.9);
+  border-bottom:1px solid var(--border);flex-shrink:0;gap:10px;backdrop-filter:blur(8px);
+}
+.device-id{color:var(--muted);font-size:.75rem;font-family:monospace;}
 
-    /* ── Logo ─────────────────────────────────────────── */
-    .logo {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: #1a1a1a;
-      border: 2px solid #c8a94a;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-    }
+/* ═══ Card layouts ═══ */
+.centered-card{
+  background:rgba(17,19,24,.97);border:1px solid var(--border);border-radius:20px;
+  padding:36px 32px;width:100%;max-width:560px;text-align:center;backdrop-filter:blur(20px);
+  margin:auto;z-index:11;
+}
+.card-title{font-size:1.2rem;font-weight:700;margin:0 0 8px;line-height:1.3;}
+.card-subtitle{font-size:.86rem;color:var(--muted);margin-bottom:22px;line-height:1.5;}
 
-    /* ── Title / subtitle ─────────────────────────────── */
-    .title {
-      text-align: center;
-      font-size: 22px;
-      font-weight: 700;
-      line-height: 1.3;
-      margin-bottom: 6px;
-    }
-    .subtitle {
-      text-align: center;
-      font-size: 13px;
-      color: #888;
-      margin-bottom: 24px;
-    }
+/* ═══ Welcome ═══ */
+#s-welcome{align-items:center;justify-content:center;padding:20px;}
+.lang-label{font-size:.78rem;color:var(--muted);text-align:left;margin-bottom:8px;}
+.lang-row{display:flex;gap:10px;margin-bottom:18px;}
+.lang-btn{
+  flex:1;padding:12px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--card2);color:var(--text);cursor:pointer;font-size:.85rem;
+  display:flex;align-items:center;justify-content:center;gap:6px;transition:.15s;
+}
+.lang-btn:hover,.lang-btn.sel{border-color:var(--gold);color:var(--gold);background:rgba(232,184,75,.08);}
+.a11y-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 14px;background:var(--card2);border:1px solid var(--border);
+  border-radius:var(--radius-sm);margin-bottom:18px;cursor:pointer;
+}
+.a11y-row-label{font-size:.86rem;text-align:left;}
+.switch{
+  width:42px;height:24px;background:var(--border);border-radius:12px;position:relative;transition:.2s;flex-shrink:0;
+}
+.switch.on{background:var(--gold);}
+.switch::after{
+  content:'';position:absolute;width:18px;height:18px;background:#fff;
+  border-radius:50%;top:3px;left:3px;transition:.2s;
+}
+.switch.on::after{left:21px;}
+.size-selector{display:none;gap:8px;margin-bottom:18px;}
+.size-selector.show{display:flex;}
+.size-btn{
+  flex:1;padding:10px;background:var(--card2);border:1px solid var(--border);
+  border-radius:var(--radius-sm);color:var(--text);cursor:pointer;font-size:.82rem;transition:.15s;
+}
+.size-btn.sel{border-color:var(--gold);color:var(--gold);background:rgba(232,184,75,.08);}
+.kiosk-lock{position:fixed;bottom:20px;right:20px;color:var(--muted);font-size:1.4rem;cursor:pointer;z-index:12;}
 
-    /* ── Language selector ────────────────────────────── */
-    .lang-group {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 20px;
-    }
-    .lang-btn {
-      flex: 1;
-      padding: 12px 8px;
-      border-radius: 10px;
-      border: 1.5px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.04);
-      color: #fff;
-      font-size: 13px;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 4px;
-      transition: border-color 0.15s, background 0.15s;
-    }
-    .lang-btn.active {
-      border-color: #c8a94a;
-      background: rgba(200,169,74,0.12);
-    }
-    .lang-btn .flag { font-size: 20px; }
+/* ═══ Rules ═══ */
+#s-rules{align-items:center;justify-content:center;padding:20px;}
+#s-rules .centered-card{max-width:600px;padding:28px;}
+.rules-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0;text-align:left;}
+.rule-card{background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;}
+.rule-card-title{font-size:.86rem;font-weight:600;margin-bottom:6px;}
+.rule-card-text{font-size:.72rem;color:var(--muted);line-height:1.5;}
 
-    /* ── Accessibility row ────────────────────────────── */
-    .access-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: rgba(255,255,255,0.04);
-      border-radius: 10px;
-      padding: 12px 14px;
-      margin-bottom: 20px;
-      font-size: 13px;
-      color: #ccc;
-    }
-    .access-row svg { width: 16px; height: 16px; margin-right: 6px; fill: #888; }
-    .access-left { display: flex; align-items: center; }
-    .toggle-wrap {
-      display: flex;
-      background: rgba(255,255,255,0.08);
-      border-radius: 20px;
-      padding: 2px;
-    }
-    .toggle-btn {
-      padding: 4px 10px;
-      border-radius: 16px;
-      border: none;
-      font-size: 12px;
-      cursor: pointer;
-      background: none;
-      color: #888;
-    }
-    .toggle-btn.active {
-      background: #2a2a2a;
-      color: #fff;
-    }
+/* ═══ Specialist / Guide select ═══ */
+#s-spec,#s-guide{flex-direction:column;}
+.center-page{flex:1;display:flex;flex-direction:column;padding:20px;overflow-y:auto;}
+.center-card-lg{
+  background:rgba(17,19,24,.97);border:1px solid var(--border);border-radius:20px;
+  padding:28px;width:100%;max-width:1000px;margin:auto;backdrop-filter:blur(20px);
+}
+.spec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-top:18px;}
+.spec-card{
+  background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px;text-align:center;cursor:pointer;transition:.15s;
+}
+.spec-card:hover{border-color:var(--border-light);}
+.spec-card.sel{border-color:var(--gold);background:rgba(232,184,75,.08);}
+.spec-number{font-size:1rem;font-weight:700;color:var(--gold);margin-bottom:8px;}
+.spec-photo{
+  width:84px;height:84px;border-radius:50%;margin:0 auto 10px;
+  background:var(--card3);background-size:cover;background-position:center;
+  border:2px solid var(--border);
+}
+.spec-card.sel .spec-photo{border-color:var(--gold);}
+.spec-name{font-size:.78rem;margin-bottom:8px;min-height:2.4em;}
+.spec-action{font-size:.72rem;color:var(--muted);}
+.spec-card.sel .spec-action{color:var(--gold);}
 
-    /* ── Size selector ────────────────────────────────── */
-    .size-label {
-      font-size: 12px;
-      color: #888;
-      margin-bottom: 8px;
-    }
-    .size-group {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 20px;
-    }
-    .size-btn {
-      flex: 1;
-      padding: 10px;
-      border-radius: 10px;
-      border: 1.5px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.04);
-      color: #ccc;
-      font-size: 13px;
-      cursor: pointer;
-      transition: border-color 0.15s, background 0.15s;
-    }
-    .size-btn.active {
-      border-color: #4CAF50;
-      background: rgba(76,175,80,0.1);
-      color: #4CAF50;
-    }
+.guide-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-top:18px;}
+.guide-card{
+  background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);
+  overflow:hidden;cursor:pointer;transition:.15s;
+}
+.guide-card:hover{border-color:var(--border-light);}
+.guide-card.sel{border-color:var(--gold);}
+.guide-vid-wrap{
+  position:relative;width:100%;aspect-ratio:3/4;background:var(--card3);
+  display:flex;align-items:center;justify-content:center;
+  background-size:cover;background-position:center;
+}
+.guide-play{
+  width:46px;height:46px;border-radius:50%;background:rgba(0,0,0,.6);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.2rem;
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+}
+.guide-name{padding:10px 12px;text-align:center;font-size:.82rem;}
 
-    /* ── Rules grid ───────────────────────────────────── */
-    .rules-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    .rule-card {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      padding: 14px;
-    }
-    .rule-card .rule-num {
-      font-size: 11px;
-      color: #c8a94a;
-      font-weight: 600;
-      margin-bottom: 4px;
-    }
-    .rule-card .rule-title {
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 6px;
-    }
-    .rule-card .rule-text {
-      font-size: 11px;
-      color: #999;
-      line-height: 1.5;
-    }
+/* ═══ Waiting ═══ */
+#s-wait,#s-wait-tour{align-items:center;justify-content:center;padding:20px;position:relative;}
+.wait-bg{position:fixed;inset:0;background-size:cover;background-position:center;z-index:1;}
+.wait-bg::after{content:'';position:absolute;inset:0;background:rgba(0,0,0,.55);}
+.wait-card{
+  background:rgba(17,19,24,.94);border:1px solid var(--border);border-radius:20px;
+  padding:36px 32px;width:100%;max-width:460px;text-align:center;z-index:11;position:relative;
+}
+.spinner{
+  width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--gold);
+  border-radius:50%;animation:spin 1s linear infinite;margin:20px auto;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.wait-note{font-size:.75rem;color:var(--muted);margin-top:16px;padding:10px;background:var(--card2);border-radius:var(--radius-sm);line-height:1.5;}
 
-    /* ── Guides horizontal scroll ─────────────────────── */
-    .guides-scroll {
-      display: flex;
-      gap: 12px;
-      overflow-x: auto;
-      padding-bottom: 8px;
-      margin-bottom: 20px;
-      scrollbar-width: none;
-    }
-    .guides-scroll::-webkit-scrollbar { display: none; }
-    .guide-card {
-      flex-shrink: 0;
-      width: 140px;
-      background: rgba(255,255,255,0.04);
-      border: 1.5px solid rgba(255,255,255,0.1);
-      border-radius: 14px;
-      overflow: hidden;
-      cursor: pointer;
-      transition: border-color 0.15s;
-    }
-    .guide-card.selected { border-color: #c8a94a; }
-    .guide-card .guide-thumb {
-      width: 100%;
-      height: 120px;
-      object-fit: cover;
-      background: #222;
-      display: block;
-    }
-    .guide-card .guide-thumb-placeholder {
-      width: 100%;
-      height: 120px;
-      background: #1a1a1a;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 36px;
-    }
-    .guide-card .play-overlay {
-      position: relative;
-    }
-    .guide-card .play-btn {
-      position: absolute;
-      bottom: 8px;
-      right: 8px;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: rgba(200,169,74,0.9);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-    }
-    .guide-card .guide-info {
-      padding: 10px;
-    }
-    .guide-card .guide-name {
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 3px;
-    }
-    .guide-card .guide-desc {
-      font-size: 11px;
-      color: #888;
-      line-height: 1.4;
-      max-height: 40px;
-      overflow: hidden;
-    }
-    .guide-card.selected .play-btn { background: #c8a94a; }
-    .selected-badge {
-      background: #c8a94a;
-      color: #000;
-      font-size: 11px;
-      font-weight: 700;
-      border-radius: 6px;
-      padding: 2px 8px;
-      margin-top: 4px;
-      text-align: center;
-    }
+/* ═══ Dashboard (tour) ═══ */
+#s-dashboard{flex-direction:row;padding:16px;gap:14px;background:var(--bg);}
+.left-col{
+  width:280px;flex-shrink:0;display:flex;flex-direction:column;gap:10px;
+}
+.guide-video-panel{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  overflow:hidden;position:relative;
+}
+.guide-video-panel video{width:100%;display:block;aspect-ratio:3/4;object-fit:cover;background:#000;}
+.guide-video-panel audio{display:none;}
+.guide-video-ctrl{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;
+}
+.guide-video-ctrl button{
+  background:none;border:none;color:var(--text);font-size:1.2rem;cursor:pointer;
+}
+.guide-progress{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;position:relative;}
+.guide-progress-fill{height:100%;background:var(--gold);width:0%;}
+.guide-time{font-size:.7rem;color:var(--muted);font-family:monospace;}
+.guide-desc-panel{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:14px;flex:1;overflow-y:auto;
+}
+.guide-desc-header{
+  display:flex;align-items:center;justify-content:space-between;font-size:.78rem;color:var(--muted-2);margin-bottom:10px;
+}
+.guide-desc-text{font-size:.8rem;color:var(--muted);line-height:1.55;}
 
-    /* ── Specialists grid ─────────────────────────────── */
-    .specialists-scroll {
-      display: flex;
-      gap: 10px;
-      overflow-x: auto;
-      padding-bottom: 8px;
-      margin-bottom: 14px;
-      scrollbar-width: none;
-    }
-    .specialists-scroll::-webkit-scrollbar { display: none; }
-    .spec-card {
-      flex-shrink: 0;
-      width: 110px;
-      background: rgba(255,255,255,0.04);
-      border: 1.5px solid rgba(255,255,255,0.1);
-      border-radius: 14px;
-      padding: 12px 8px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      cursor: pointer;
-      transition: border-color 0.15s;
-    }
-    .spec-card.selected { border-color: #c8a94a; }
-    .spec-card .spec-num {
-      font-size: 18px;
-      font-weight: 700;
-      color: #c8a94a;
-    }
-    .spec-card .spec-avatar {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      object-fit: cover;
-      background: #222;
-    }
-    .spec-card .spec-avatar-placeholder {
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      background: #2a2a2a;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-    }
-    .spec-card .spec-name {
-      font-size: 11px;
-      color: #ccc;
-      text-align: center;
-      line-height: 1.3;
-    }
-    .spec-card .spec-join-btn {
-      width: 100%;
-      padding: 6px;
-      border-radius: 8px;
-      border: none;
-      background: rgba(200,169,74,0.15);
-      color: #c8a94a;
-      font-size: 11px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    .spec-card .spec-join-btn:hover { background: rgba(200,169,74,0.25); }
-    .spec-card .spec-join-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-    .spec-error {
-      font-size: 12px;
-      color: #e74c3c;
-      text-align: center;
-      margin-bottom: 10px;
-      min-height: 18px;
-    }
+.main-col{
+  flex:1;display:flex;flex-direction:column;gap:10px;min-width:0;overflow:hidden;
+}
+.main-content{
+  flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  position:relative;overflow:hidden;display:flex;flex-direction:column;
+}
+.content-header{
+  padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px;
+}
+.content-title{font-size:.9rem;font-weight:600;}
+.content-body{flex:1;overflow:hidden;position:relative;}
+.content-body video{width:100%;height:100%;object-fit:contain;background:#000;}
+.content-body img.cover{width:100%;height:100%;object-fit:cover;}
+.content-body img.contain{width:100%;height:100%;object-fit:contain;}
 
-    /* ── Waiting screen ───────────────────────────────── */
-    .waiting-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 16px;
-    }
-    .spinner {
-      width: 40px;
-      height: 40px;
-      border: 3px solid rgba(200,169,74,0.2);
-      border-top-color: #c8a94a;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .waiting-hint {
-      font-size: 12px;
-      color: #666;
-      max-width: 280px;
-      line-height: 1.5;
-    }
+.exhibits-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:8px;height:100%;overflow-y:auto;}
+.exhibit-tile{
+  position:relative;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);
+  aspect-ratio:16/10;cursor:pointer;overflow:hidden;
+}
+.exhibit-tile img{width:100%;height:100%;object-fit:cover;}
+.exhibit-tile-name{
+  position:absolute;top:8px;left:8px;right:8px;font-size:.72rem;color:#fff;font-weight:500;
+  text-shadow:0 1px 4px rgba(0,0,0,.8);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.exhibit-tile-icons{
+  position:absolute;bottom:6px;right:6px;display:flex;gap:4px;
+}
+.exhibit-tile-icons .ico{
+  width:22px;height:22px;background:rgba(0,0,0,.6);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem;
+}
 
-    /* ── Tour dashboard ───────────────────────────────── */
-    #screen-dashboard {
-      padding: 0;
-    }
-    .dashboard-wrap {
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      background: #0f0f0f;
-    }
-    .dashboard-top {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-    }
+.exhibit-detail{display:grid;grid-template-columns:1fr 1fr;gap:0;height:100%;}
+.exhibit-detail-media{background:#000;position:relative;overflow:hidden;}
+.exhibit-detail-media img{width:100%;height:100%;object-fit:cover;}
+.exhibit-detail-info{padding:16px;overflow-y:auto;}
+.exhibit-detail-title{font-size:1rem;font-weight:600;margin-bottom:10px;}
+.exhibit-detail-desc{font-size:.78rem;color:var(--muted);line-height:1.6;}
+.exhibit-thumbs{
+  display:flex;gap:6px;padding:8px;border-top:1px solid var(--border);overflow-x:auto;align-items:center;
+}
+.exhibit-thumbs img{width:54px;height:54px;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid var(--border);}
+.exhibit-thumbs img.sel{border-color:var(--gold);}
+.exhibit-thumbs button{background:none;border:none;color:var(--muted);font-size:1rem;cursor:pointer;padding:0 6px;}
 
-    /* Left panel: guide + info */
-    .guide-panel {
-      width: 260px;
-      flex-shrink: 0;
-      border-right: 1px solid rgba(255,255,255,0.07);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .guide-video-wrap {
-      position: relative;
-      background: #111;
-      max-height: 200px;
-      overflow: hidden;
-    }
-    .guide-video-wrap video,
-    .guide-video-wrap .guide-video-placeholder {
-      width: 100%;
-      height: 200px;
-      max-height: 200px;
-      object-fit: cover;
-      display: block;
-    }
-    .guide-video-placeholder {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 60px;
-      background: #1a1a1a;
-    }
-    .guide-video-overlay {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: linear-gradient(transparent, rgba(0,0,0,0.8));
-      padding: 10px 12px 8px;
-    }
-    .guide-video-name {
-      font-size: 13px;
-      font-weight: 600;
-    }
-    .guide-info-body {
-      flex: 1;
-      padding: 14px;
-      overflow-y: auto;
-    }
-    .guide-desc-text {
-      font-size: 12px;
-      color: #999;
-      line-height: 1.6;
-    }
-    .section-info {
-      margin-top: 14px;
-      padding: 10px;
-      background: rgba(255,255,255,0.04);
-      border-radius: 10px;
-    }
-    .section-info .label {
-      font-size: 10px;
-      color: #666;
-      margin-bottom: 3px;
-    }
-    .section-info .value {
-      font-size: 13px;
-      font-weight: 600;
-    }
+.audio-player{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;
+}
+.audio-wave{
+  width:100%;max-width:400px;height:90px;background:linear-gradient(to right,
+    var(--muted) 0 2px,transparent 2px 6px,var(--muted) 6px 9px,transparent 9px 14px);
+  background-size:14px 100%;mask-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 40"><path d="M0,20 L5,10 L10,30 L15,5 L20,35 L25,15 L30,25 L35,8 L40,32 L45,18 L50,22 L55,12 L60,28 L65,6 L70,34 L75,20 L80,16 L85,24 L90,10 L95,30 L100,20" fill="none" stroke="black" stroke-width="2"/></svg>');
+  mask-size:100% 100%;margin-bottom:20px;
+}
+.audio-controls{display:flex;align-items:center;gap:12px;width:100%;max-width:400px;}
+.audio-controls button{
+  width:44px;height:44px;border-radius:50%;background:var(--gold);color:#0a0c10;
+  border:none;font-size:1rem;cursor:pointer;
+}
+.audio-progress{flex:1;height:4px;background:var(--border);border-radius:2px;position:relative;overflow:hidden;}
+.audio-progress-fill{height:100%;background:var(--gold);width:0%;}
 
-    /* Right panel: exhibits */
-    .exhibits-panel {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .exhibits-header {
-      padding: 14px 16px 10px;
-      border-bottom: 1px solid rgba(255,255,255,0.07);
-    }
-    .exhibits-hall-name {
-      font-size: 11px;
-      color: #c8a94a;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .exhibits-section-name {
-      font-size: 16px;
-      font-weight: 700;
-    }
-    .exhibits-hint {
-      font-size: 11px;
-      color: #666;
-      margin-top: 3px;
-    }
-    .exhibits-grid {
-      flex: 1;
-      overflow-y: auto;
-      padding: 12px;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      align-content: start;
-    }
-    .exhibit-card {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      overflow: hidden;
-      cursor: pointer;
-      transition: border-color 0.15s;
-    }
-    .exhibit-card:hover { border-color: rgba(200,169,74,0.4); }
-    .exhibit-card.playing { border-color: #c8a94a; }
-    .exhibit-card .ex-thumb {
-      width: 100%;
-      height: 80px;
-      object-fit: cover;
-      background: #1a1a1a;
-      display: block;
-    }
-    .exhibit-card .ex-thumb-placeholder {
-      width: 100%;
-      height: 80px;
-      background: #1a1a1a;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-    }
-    .exhibit-card .ex-body {
-      padding: 8px;
-    }
-    .exhibit-card .ex-title {
-      font-size: 12px;
-      font-weight: 600;
-      line-height: 1.3;
-    }
-    .exhibit-card .ex-num {
-      font-size: 10px;
-      color: #666;
-      margin-top: 2px;
-    }
-    .no-exhibits {
-      grid-column: 1 / -1;
-      text-align: center;
-      color: #555;
-      padding: 40px 0;
-      font-size: 13px;
-    }
+/* Transition overlay */
+.transition-panel{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;
+}
+.transition-hall-name{font-size:1.3rem;font-weight:700;margin-bottom:14px;}
+.transition-map{width:100%;max-width:520px;border-radius:var(--radius);margin-bottom:14px;}
+.transition-note{font-size:.82rem;color:var(--muted-2);background:var(--card2);padding:10px 14px;border-radius:var(--radius-sm);}
+.transition-timer{margin-top:18px;padding:10px 20px;background:var(--card2);border-radius:var(--radius-sm);display:flex;gap:14px;align-items:center;}
+.transition-timer-value{color:var(--gold);font-family:monospace;font-size:1.1rem;font-weight:700;}
 
-    /* Exhibit video modal */
-    .exhibit-modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 100;
-      background: rgba(0,0,0,0.85);
-      align-items: center;
-      justify-content: center;
-    }
-    .exhibit-modal.open { display: flex; }
-    .exhibit-modal-inner {
-      background: #111;
-      border-radius: 16px;
-      overflow: hidden;
-      width: 560px;
-      max-width: 95vw;
-    }
-    .exhibit-modal video {
-      width: 100%;
-      max-height: 350px;
-      object-fit: contain;
-      background: #000;
-      display: block;
-    }
-    .exhibit-modal-info {
-      padding: 16px;
-    }
-    .exhibit-modal-title {
-      font-size: 16px;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-    .exhibit-modal-desc {
-      font-size: 12px;
-      color: #999;
-      line-height: 1.5;
-    }
-    .exhibit-modal-close {
-      position: absolute;
-      top: 16px;
-      right: 20px;
-      background: rgba(255,255,255,0.1);
-      border: none;
-      color: #fff;
-      border-radius: 50%;
-      width: 32px;
-      height: 32px;
-      font-size: 16px;
-      cursor: pointer;
-    }
+/* Bottom info bar */
+.bottom-bar{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:12px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;flex-shrink:0;
+}
+.bottom-cell{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.bottom-label{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+.bottom-value{font-size:.82rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bottom-value.timer{font-family:monospace;color:var(--gold);font-weight:700;}
+.bottom-value.timer.red{color:var(--red);}
+.bottom-value.timer.orange{color:#FFB020;}
 
-    /* Bottom timer bar */
-    .timer-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 10px 16px;
-      border-top: 1px solid rgba(255,255,255,0.07);
-      background: #0a0a0a;
-      flex-shrink: 0;
-    }
-    .timer-bar .tb-item {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .timer-bar .tb-label {
-      font-size: 10px;
-      color: #555;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-    }
-    .timer-bar .tb-value {
-      font-size: 14px;
-      font-weight: 600;
-    }
-    .timer-bar .tb-value.gold { color: #c8a94a; }
-    .timer-progress {
-      flex: 1;
-      margin: 0 16px;
-      height: 4px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-    .timer-progress-fill {
-      height: 100%;
-      background: #c8a94a;
-      transition: width 1s linear;
-      border-radius: 2px;
-    }
-    .status-badge {
-      font-size: 11px;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-weight: 600;
-    }
-    .status-badge.waiting { background: rgba(100,100,100,0.2); color: #888; }
-    .status-badge.in-progress { background: rgba(200,169,74,0.15); color: #c8a94a; }
-    .status-badge.on-break { background: rgba(66,165,245,0.15); color: #42a5f5; }
-    .status-badge.finished { background: rgba(76,175,80,0.15); color: #4caf50; }
+/* Tech stop overlay */
+.tech-stop-overlay{
+  position:fixed;bottom:20px;left:20px;right:20px;z-index:50;
+  background:var(--card);border:2px solid var(--red);border-radius:var(--radius);
+  padding:14px 18px;max-width:420px;display:none;
+}
+.tech-stop-overlay.show{display:block;}
+.tech-stop-title{color:var(--red);font-weight:600;margin-bottom:6px;font-size:.88rem;}
+.tech-stop-text{font-size:.76rem;color:var(--muted);line-height:1.5;}
 
-    /* ── Rating screen ────────────────────────────────── */
-    .stars-row {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin: 20px 0;
-    }
-    .star-btn {
-      background: none;
-      border: none;
-      font-size: 36px;
-      cursor: pointer;
-      color: #333;
-      transition: color 0.1s, transform 0.1s;
-    }
-    .star-btn.active { color: #c8a94a; }
-    .star-btn:hover { transform: scale(1.1); }
-    .rating-textarea {
-      width: 100%;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px;
-      color: #fff;
-      padding: 12px;
-      font-size: 13px;
-      resize: none;
-      height: 90px;
-      margin-bottom: 16px;
-    }
-    .rating-textarea::placeholder { color: #555; }
-    .rating-textarea:focus { outline: none; border-color: rgba(200,169,74,0.4); }
-    .btn-row {
-      display: flex;
-      gap: 10px;
-    }
-    .btn-row .btn-skip {
-      flex: 1;
-      padding: 14px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: none;
-      color: #888;
-      font-size: 14px;
-      cursor: pointer;
-    }
-    .btn-row .btn-skip:hover { background: rgba(255,255,255,0.05); }
+/* ═══ Modals ═══ */
+.modal-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+.modal-bg.active{display:flex;}
+.modal{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:24px;width:100%;max-width:440px;position:relative;
+}
+.modal-title{font-size:1.05rem;font-weight:600;margin-bottom:8px;text-align:center;}
+.modal-subtitle{font-size:.82rem;color:var(--muted);margin-bottom:18px;text-align:center;line-height:1.5;}
+.modal-close{
+  position:absolute;top:18px;right:18px;background:none;border:none;
+  color:var(--muted);font-size:1.1rem;cursor:pointer;width:28px;height:28px;
+  border-radius:6px;display:flex;align-items:center;justify-content:center;
+}
+.modal-close:hover{background:var(--card2);color:var(--text);}
 
-    /* ── Done screen ──────────────────────────────────── */
-    .done-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 16px;
-    }
-    .done-countdown {
-      font-size: 40px;
-      font-weight: 700;
-      color: #c8a94a;
-      font-variant-numeric: tabular-nums;
-    }
-    .done-hint {
-      font-size: 13px;
-      color: #888;
-      max-width: 280px;
-      line-height: 1.5;
-    }
-    .toast {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #1e3a1e;
-      border: 1px solid #4caf50;
-      color: #4caf50;
-      border-radius: 10px;
-      padding: 10px 20px;
-      font-size: 13px;
-      z-index: 200;
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-    .toast.show { opacity: 1; }
+/* Rating */
+.rating-card{
+  background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:18px;margin-bottom:14px;
+}
+.rating-title{font-size:.9rem;font-weight:600;text-align:center;margin-bottom:12px;}
+.stars{display:flex;justify-content:center;gap:10px;margin-bottom:14px;}
+.star{
+  font-size:1.8rem;color:var(--border-light);cursor:pointer;transition:.12s;
+}
+.star.fill{color:var(--gold);}
+.rating-card textarea{
+  width:100%;min-height:84px;padding:10px;background:var(--card);
+  border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);
+  resize:none;font-size:.82rem;
+}
+.rating-card textarea:focus{outline:none;border-color:var(--gold);}
 
-    /* ── Primary button ───────────────────────────────── */
-    .btn-primary {
-      width: 100%;
-      padding: 16px;
-      border-radius: 12px;
-      border: none;
-      background: #c8a94a;
-      color: #000;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-    .btn-primary:hover { background: #d4b55a; }
-    .btn-primary:disabled { background: #555; color: #888; cursor: not-allowed; }
+/* End countdown */
+.end-countdown{
+  background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:12px 18px;text-align:center;font-size:1.1rem;font-family:monospace;font-weight:700;
+  margin-bottom:14px;
+}
 
-    /* ── Break overlay ────────────────────────────────── */
-    .break-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 50;
-      background: rgba(0,0,0,0.75);
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .break-overlay.visible { display: flex; }
-    .break-overlay .break-icon { font-size: 48px; }
-    .break-overlay .break-title { font-size: 22px; font-weight: 700; }
-    .break-overlay .break-sub { font-size: 14px; color: #888; }
+/* ═══ Toasts ═══ */
+#toasts{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center;max-width:92%;}
+.toast{
+  padding:10px 16px;border-radius:var(--radius-sm);font-size:.82rem;line-height:1.4;
+  animation:slide-up .25s ease;box-shadow:0 6px 16px rgba(0,0,0,.4);
+}
+.toast-success{background:#065f46;color:#d1fae5;}
+.toast-error{background:#7f1d1d;color:#fee2e2;}
+.toast-info{background:var(--card3);color:var(--text);border:1px solid var(--border-light);}
+@keyframes slide-up{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 
-    /* ── Finished overlay ─────────────────────────────── */
-    .finished-overlay {
-      display: none;
-    }
-
-    /* scrollbar */
-    ::-webkit-scrollbar { width: 4px; height: 4px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
-
-    /* ── WS status bar ────────────────────────────────── */
-    .ws-bar {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 300;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: 6px;
-      padding: 6px 14px;
-      background: rgba(0,0,0,0.55);
-      backdrop-filter: blur(6px);
-      font-size: 11px;
-      color: #888;
-    }
-    .ws-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: #555;
-      transition: background 0.3s;
-    }
-    .ws-dot.connected { background: #4caf50; box-shadow: 0 0 6px #4caf50; }
-    .ws-dot.connecting { background: #ff9800; animation: blink 1s infinite; }
-    .ws-dot.error { background: #e74c3c; }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-
-    /* ── Total timer ──────────────────────────────────── */
-    .total-timer {
-      font-size: 12px;
-      color: #888;
-      margin-right: auto;
-    }
-    .total-timer span { color: #c8a94a; font-weight: 600; }
-  </style>
+.status-badge{
+  display:inline-block;padding:3px 8px;border-radius:8px;font-size:.68rem;font-weight:500;
+  text-transform:uppercase;letter-spacing:.04em;
+}
+.status-in_progress{background:rgba(34,197,94,.2);color:var(--green);}
+.status-on_break{background:rgba(232,184,75,.2);color:var(--gold);}
+.status-section_transition,.status-hall_transition{background:rgba(110,110,255,.2);color:#8b8bff;}
+.status-finished{background:rgba(239,68,68,.2);color:var(--red);}
+.ws-dot{
+  width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;
+}
+.ws-dot.ok{background:var(--green);}
+.ws-dot.wait{background:#f59e0b;}
+.ws-dot.no{background:var(--red);}
+</style>
 </head>
 <body>
 <div class="bg"></div>
 
-<!-- WS status bar (always visible) -->
-<div class="ws-bar" id="ws-bar">
-  <div class="total-timer" id="ws-total-timer" style="display:none">
-    Тур: <span id="ws-total-time">—</span>
+<!-- ═══ Welcome ═══ -->
+<div id="s-welcome" class="screen active">
+  <div class="centered-card">
+    <div class="logo-emblem lg">ICCU</div>
+    <div class="card-title">Добро пожаловать в<br>Центр Исламской Цивилизации</div>
+
+    <div class="lang-label">Выберите язык</div>
+    <div class="lang-row">
+      <button class="lang-btn" onclick="setLang(this,'uz')">🇺🇿 Узбекский</button>
+      <button class="lang-btn sel" onclick="setLang(this,'ru')">🇷🇺 Русский</button>
+      <button class="lang-btn" onclick="setLang(this,'en')">🇬🇧 English</button>
+    </div>
+
+    <div class="a11y-row" onclick="toggleA11y()">
+      <div class="a11y-row-label">⚙ Настройки доступности</div>
+      <div id="a11y-switch" class="switch"></div>
+    </div>
+    <div id="size-selector" class="size-selector">
+      <button class="size-btn" onclick="setSize(this,'small')">Маленький</button>
+      <button class="size-btn sel" onclick="setSize(this,'medium')">Средний</button>
+      <button class="size-btn" onclick="setSize(this,'large')">Большой</button>
+    </div>
+
+    <button class="btn btn-gold btn-big" onclick="goRules()">Продолжить</button>
   </div>
-  <div class="ws-dot" id="ws-dot"></div>
-  <span id="ws-label">Не подключён</span>
+  <div class="kiosk-lock" onclick="openModal('m-kiosk')" title="Kiosk unlock">🔒</div>
 </div>
 
-<!-- ═══════════════ SCREEN 1: WELCOME ═══════════════ -->
-<div class="screen active" id="screen-welcome">
-  <div class="card">
-    <div style="text-align:center;margin-bottom:20px">
-      <div class="logo" style="margin:0 auto 14px">🕌</div>
-      <div class="title">Добро пожаловать в<br>Центр Исламской Цивилизации</div>
+<!-- ═══ Rules ═══ -->
+<div id="s-rules" class="screen">
+  <div class="centered-card">
+    <div style="text-align:left;"><button class="btn btn-back" onclick="go('s-welcome')">← Назад</button></div>
+    <div class="logo-emblem lg"></div>
+    <div class="card-title">Правила и инструкция</div>
+    <div class="card-subtitle">Ознакомьтесь с правилами и инструкцией тура перед началом</div>
+
+    <div class="rules-grid">
+      <div class="rule-card"><div class="rule-card-title">1. Общие правила</div><div class="rule-card-text">Наденьте наушники на аудиогид, не отставайте от группы, не нарушайте порядок. Не трогайте экспонаты.</div></div>
+      <div class="rule-card"><div class="rule-card-title">2. Перерывы в залах</div><div class="rule-card-text">Весь тур будет с вас на роли, каждый зал имеет интерактивные объекты с которыми можно взаимодействовать, у вас будет на это время после рассказов гида.</div></div>
+      <div class="rule-card"><div class="rule-card-title">3. Подключение к специалисту</div><div class="rule-card-text">Найдите номер своего специалиста на его форме, чтобы подключиться к программе тура.</div></div>
+      <div class="rule-card"><div class="rule-card-title">4. Навигация</div><div class="rule-card-text">Следуйте за специалистом, чтобы перемещаться в правильном направлении.</div></div>
     </div>
 
-    <div style="font-size:12px;color:#888;margin-bottom:8px">Выберите язык</div>
-    <div class="lang-group">
-      <button class="lang-btn" data-lang="uz" onclick="selectLang(this)">
-        <span class="flag">🇺🇿</span>Узбекский
-      </button>
-      <button class="lang-btn" data-lang="ru" onclick="selectLang(this)">
-        <span class="flag">🇷🇺</span>Русский
-      </button>
-      <button class="lang-btn active" data-lang="en" onclick="selectLang(this)">
-        <span class="flag">🇺🇸</span>Английский
-      </button>
-    </div>
+    <button class="btn btn-gold btn-big" onclick="goConnect()">Подключиться</button>
+  </div>
+</div>
 
-    <div class="access-row">
-      <span class="access-left">
-        <svg viewBox="0 0 24 24"><path d="M12 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4zm-1 5h2v6l3 6h-2l-2-4-2 4H8l3-6V7z"/></svg>
-        Настройки доступности ›
-      </span>
-      <div class="toggle-wrap" id="theme-toggle">
-        <button class="toggle-btn" onclick="setTheme('light',this)">☀</button>
-        <button class="toggle-btn active" onclick="setTheme('dark',this)">🌙</button>
+<!-- ═══ Guide select ═══ -->
+<div id="s-guide" class="screen">
+  <div class="topbar">
+    <button class="btn btn-back" onclick="go('s-rules')">← Назад</button>
+    <div class="logo-emblem"></div>
+    <button id="btn-guide-select" class="btn btn-gold" disabled onclick="doSelectGuide()">Выбрать</button>
+  </div>
+  <div class="center-page">
+    <div class="center-card-lg">
+      <div class="card-title" style="text-align:center">Выберите гида</div>
+      <div class="card-subtitle" style="text-align:center">Выберите своего гида, который будет рассказывать о центре и экспонатах</div>
+      <div class="guide-grid" id="guide-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Specialist select ═══ -->
+<div id="s-spec" class="screen">
+  <div class="topbar">
+    <button class="btn btn-back" onclick="go('s-guide')">← Назад</button>
+    <div class="logo-emblem"></div>
+    <div class="device-id" id="dev-id">ID: —</div>
+  </div>
+  <div class="center-page">
+    <div class="center-card-lg">
+      <div class="card-title" style="text-align:center">Выберите специалиста</div>
+      <div class="card-subtitle" style="text-align:center">На форме сотрудника есть номер, это ваш специалист, выберите его ниже</div>
+      <div class="spec-grid" id="spec-grid">
+        <div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--muted)">Загрузка...</div>
+      </div>
+      <div id="spec-status" style="margin-top:14px;text-align:center;font-size:.82rem;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Waiting (no specialists) ═══ -->
+<div id="s-wait" class="screen">
+  <div class="wait-bg" id="wait-bg"></div>
+  <div class="wait-card">
+    <div class="logo-emblem lg"></div>
+    <div class="card-title">Специалисты недоступны</div>
+    <div class="card-subtitle">Просим вас подождать пока специалисты снова станут доступны</div>
+    <div class="spinner"></div>
+    <div class="wait-note">Благодарим Вас за терпение и надеемся, что Вы насладитесь этим увлекательным приключением в процессе!</div>
+  </div>
+</div>
+
+<!-- ═══ Waiting for tour start ═══ -->
+<div id="s-wait-tour" class="screen">
+  <div class="wait-bg" id="wait-bg-2"></div>
+  <div class="wait-card">
+    <div style="text-align:left"><button class="btn btn-back" onclick="doLeave()">← Назад</button></div>
+    <div class="logo-emblem lg" style="margin-top:18px"></div>
+    <div class="card-title">Ожидание начала тура</div>
+    <div class="card-subtitle">Тур готовится к запуску</div>
+    <div class="spinner"></div>
+    <div class="wait-note">Пожалуйста, наденьте наушники и будьте готовы следовать за группой</div>
+  </div>
+</div>
+
+<!-- ═══ Dashboard (tour) ═══ -->
+<div id="s-dashboard" class="screen">
+  <!-- Left: guide video + description -->
+  <div class="left-col">
+    <div class="guide-video-panel">
+      <video id="guide-video" muted playsinline></video>
+      <audio id="exhibits-audio-bg" loop></audio>
+      <div class="guide-video-ctrl">
+        <button onclick="toggleGuideVideo()" id="gv-play">▶</button>
+        <span class="guide-time" id="gv-time">00:00 / 00:00</span>
+        <div class="guide-progress"><div class="guide-progress-fill" id="gv-progress"></div></div>
       </div>
     </div>
-
-    <div id="access-panel" style="display:none">
-      <div class="size-label">Размер текста</div>
-      <div class="size-group">
-        <button class="size-btn" onclick="setFontSize('small',this)">Маленький</button>
-        <button class="size-btn active" onclick="setFontSize('medium',this)">Средний</button>
-        <button class="size-btn" onclick="setFontSize('large',this)">Большой</button>
+    <div class="guide-desc-panel">
+      <div class="guide-desc-header">
+        <span>🎧 Гид</span>
+        <span id="gv-specnum">—</span>
       </div>
-    </div>
-
-    <button class="btn-primary" onclick="showScreen('rules')">Продолжить</button>
-  </div>
-</div>
-
-<!-- ═══════════════ SCREEN 2: RULES ═══════════════ -->
-<div class="screen" id="screen-rules">
-  <div class="card card-wide">
-    <div class="header-row">
-      <button class="back-btn" onclick="showScreen('welcome')">Назад</button>
-      <div class="logo-wrap"><div class="logo">🕌</div></div>
-    </div>
-    <div class="title">Правила и инструкция</div>
-    <div class="subtitle">Ознакомьтесь с правилами и инструкцией тура, перед началом</div>
-
-    <div class="rules-grid" id="rules-grid">
-      <div style="text-align:center;grid-column:1/-1;padding:20px;color:#555">Загрузка правил...</div>
-    </div>
-
-    <button class="btn-primary" onclick="registerTourist()">Подключиться</button>
-  </div>
-</div>
-
-<!-- ═══════════════ SCREEN 3: GUIDE SELECT ═══════════════ -->
-<div class="screen" id="screen-guide-select">
-  <div class="card card-wide">
-    <div class="header-row">
-      <button class="back-btn" onclick="showScreen('rules')">Назад</button>
-      <div class="logo-wrap"><div class="logo">🕌</div></div>
-    </div>
-    <div class="title">Выберите гида</div>
-    <div class="subtitle">Выберите своего гида, который будет рассказывать о центре и экспонатах</div>
-
-    <div class="guides-scroll" id="guides-scroll">
-      <div style="color:#555;padding:20px">Загрузка гидов...</div>
-    </div>
-
-    <button class="btn-primary" id="btn-guide-next" disabled onclick="showScreen('specialist-select')">
-      Далее
-    </button>
-  </div>
-</div>
-
-<!-- ═══════════════ SCREEN 4: SPECIALIST SELECT ═══════════════ -->
-<div class="screen" id="screen-specialist-select">
-  <div class="card card-wide">
-    <div class="header-row">
-      <button class="back-btn" onclick="showScreen('guide-select')">Назад</button>
-      <div class="logo-wrap"><div class="logo">🕌</div></div>
-      <span class="session-badge" id="spec-screen-id"></span>
-    </div>
-    <div class="title">Выберите специалиста</div>
-    <div class="subtitle">На форме специалиста найди его номер, затем выбери этого специалиста</div>
-
-    <div class="specialists-scroll" id="specialists-scroll">
-      <div style="color:#555;padding:20px">Загрузка специалистов...</div>
-    </div>
-    <div class="spec-error" id="spec-error"></div>
-  </div>
-</div>
-
-<!-- ═══════════════ SCREEN 5: WAITING ═══════════════ -->
-<div class="screen" id="screen-waiting">
-  <div class="card">
-    <div class="header-row">
-      <button class="back-btn" onclick="disconnectAndBack()">Назад</button>
-      <div class="logo-wrap"><div class="logo">🕌</div></div>
-    </div>
-    <div class="waiting-content">
-      <div class="title">Ожидание начала тура</div>
-      <div class="spinner"></div>
-      <div class="waiting-hint">Пожалуйста, держите планшет и следите за информацией. Специалист скоро начнёт тур.</div>
+      <div class="guide-desc-text" id="gv-desc">Разнообразный и богатый опыт говорит нам, что выбранный нами инновационный путь предопределяет высокую востребованность внешнеэкономических политик.</div>
     </div>
   </div>
-</div>
 
-<!-- ═══════════════ SCREEN 6: DASHBOARD ═══════════════ -->
-<div class="screen" id="screen-dashboard">
-  <!-- Section transition overlay -->
-  <div class="break-overlay" id="section-transition-overlay">
-    <div class="break-icon">🚶</div>
-    <div class="break-title" id="sec-trans-title">Переход к следующему разделу</div>
-    <div class="break-sub" id="sec-trans-sub"></div>
-    <img id="sec-trans-map" src="" alt="" style="display:none;max-width:80vw;max-height:50vh;border-radius:16px;margin-top:12px">
-    <div id="sec-trans-timer" style="font-size:28px;font-weight:700;color:#c8a94a;margin-top:8px;display:none">—</div>
-  </div>
-
-  <!-- Break overlay -->
-  <div class="break-overlay" id="break-overlay">
-    <div class="break-icon" id="break-icon">☕</div>
-    <div class="break-title" id="break-title">Перерыв</div>
-    <div class="break-sub" id="break-sub">Тур временно приостановлен. Ожидайте продолжения.</div>
-    <img id="break-map-image" src="" alt="" style="display:none;max-width:80vw;max-height:50vh;border-radius:16px;margin-top:12px">
-    <div id="break-timer" style="font-size:28px;font-weight:700;color:#c8a94a;margin-top:8px;display:none">—</div>
-  </div>
-
-  <div class="dashboard-wrap">
-    <div class="dashboard-top">
-      <!-- Left: Guide video + info -->
-      <div class="guide-panel">
-        <div class="guide-video-wrap">
-          <video id="guide-video" autoplay muted playsinline>
-            <source src="" type="video/mp4">
-          </video>
-          <div id="guide-video-placeholder" class="guide-video-placeholder" style="display:flex">🎙</div>
-          <div class="guide-video-overlay">
-            <div class="guide-video-name" id="guide-panel-name">Гид</div>
-          </div>
-        </div>
-        <div class="guide-info-body">
-          <div class="guide-desc-text" id="guide-panel-desc">Выберите экспонат чтобы узнать о нём подробнее.</div>
-          <div class="section-info">
-            <div class="label">Текущий раздел</div>
-            <div class="value" id="info-section-name">—</div>
-          </div>
-          <div class="section-info" style="margin-top:8px">
-            <div class="label">Зал</div>
-            <div class="value" id="info-hall-name">—</div>
-          </div>
+  <!-- Main: content + bottom info -->
+  <div class="main-col">
+    <div class="main-content">
+      <div class="content-header">
+        <div class="content-title" id="ct-title">—</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span id="ws-indicator"><span class="ws-dot no"></span></span>
+          <span id="status-badge"></span>
+          <button class="btn" style="padding:6px 10px;font-size:.72rem" onclick="switchView('video')">Видео</button>
+          <button class="btn" style="padding:6px 10px;font-size:.72rem" onclick="switchView('exhibits')">Экспонаты</button>
+          <button class="btn" style="padding:6px 10px;font-size:.72rem" onclick="doLeave()">Выйти</button>
         </div>
       </div>
-
-      <!-- Right: Exhibits -->
-      <div class="exhibits-panel">
-        <div class="exhibits-header">
-          <div class="exhibits-hall-name" id="dash-hall-name">Зал</div>
-          <div class="exhibits-section-name" id="dash-section-name">Раздел</div>
-          <div class="exhibits-hint">ⓘ Все экспонаты зала, можно пересмотреть ещё раз. Действует рассказ гида об экспонате</div>
-        </div>
-        <!-- Section video -->
-        <div id="section-video-wrap" style="display:none;padding:8px 12px">
-          <video id="section-video" controls playsinline style="width:100%;max-height:180px;border-radius:10px;background:#000">
-          </video>
-        </div>
-        <!-- Hall map -->
-        <div id="hall-map-row" style="display:none;padding:4px 12px">
-          <img id="hall-map-img" src="" alt="Карта зала" style="max-height:100px;border-radius:8px;border:1px solid rgba(255,255,255,0.1)">
-        </div>
-        <div class="exhibits-grid" id="exhibits-grid">
-          <div class="no-exhibits">Ожидание начала тура...</div>
-        </div>
+      <div class="content-body" id="content-body">
+        <div style="padding:30px;color:var(--muted);text-align:center">Загрузка контента...</div>
       </div>
     </div>
 
-    <!-- Bottom timer bar -->
-    <div class="timer-bar">
-      <div class="tb-item">
-        <span class="tb-label">Ваше местонахождение</span>
-        <span class="tb-value" id="tb-hall">—</span>
+    <div class="bottom-bar">
+      <div class="bottom-cell">
+        <div class="bottom-label">Ваше местонахождение</div>
+        <div class="bottom-value" id="loc-hall">—</div>
       </div>
-      <div class="tb-item">
-        <span class="tb-label">Экспонат</span>
-        <span class="tb-value gold" id="tb-exhibit">Название экспоната</span>
+      <div class="bottom-cell">
+        <div class="bottom-label">Экспонат</div>
+        <div class="bottom-value" id="loc-section">—</div>
       </div>
-      <div class="timer-progress">
-        <div class="timer-progress-fill" id="timer-fill" style="width:100%"></div>
-      </div>
-      <div class="tb-item" style="text-align:right">
-        <span class="tb-label">Перейдём через</span>
-        <span class="tb-value gold" id="tb-timer">—</span>
-      </div>
-      <div style="margin-left:12px">
-        <span class="status-badge waiting" id="dash-status-badge">Ожидание</span>
+      <div class="bottom-cell" id="timer-cell">
+        <div class="bottom-label" id="timer-label">Таймер</div>
+        <div class="bottom-value timer" id="timer-value">00:00:00</div>
       </div>
     </div>
   </div>
 
-  <!-- Exhibit video modal -->
-  <div class="exhibit-modal" id="exhibit-modal">
-    <div style="position:relative">
-      <button class="exhibit-modal-close" onclick="closeExhibitModal()">✕</button>
-      <div class="exhibit-modal-inner">
-        <video id="exhibit-video" controls autoplay>
-          <source src="" type="video/mp4">
-        </video>
-        <div class="exhibit-modal-info">
-          <div class="exhibit-modal-title" id="exhibit-modal-title">Название экспоната</div>
-          <div class="exhibit-modal-desc" id="exhibit-modal-desc"></div>
-        </div>
+  <div id="tech-stop-overlay" class="tech-stop-overlay">
+    <div class="tech-stop-title">⏸ Техническая пауза</div>
+    <div class="tech-stop-text">По техническим причинам тур временно приостановлен. Просим вас сохранить терпение и в скором времени тур возобновится. Благодарим вас за понимание!</div>
+  </div>
+</div>
+
+<!-- ═══ End / rating ═══ -->
+<div id="s-end" class="screen" style="align-items:center;justify-content:center;padding:20px;">
+  <div class="centered-card" style="max-width:520px">
+    <div class="logo-emblem lg"></div>
+    <div class="card-title">Благодарим за участие в туре</div>
+    <div class="card-subtitle" id="end-sub">Пожалуйста, уделите минуту, на ответ ниже</div>
+
+    <div id="rating-block" class="rating-card">
+      <div class="rating-title">Оцените качество тура</div>
+      <div class="stars" id="stars">
+        ${[1,2,3,4,5].map(n=>`<span class="star" data-v="${n}" onclick="setRating(${n})">★</span>`).join('')}
       </div>
+      <textarea id="rating-text" placeholder="Расскажите о ваших впечатлениях"></textarea>
+    </div>
+
+    <div id="end-countdown-block" style="display:none">
+      <div class="end-countdown">Сдайте планшет и наушники: <span id="end-countdown">02:30</span></div>
+    </div>
+
+    <button id="btn-end-action" class="btn btn-gold btn-big" onclick="submitRating()">Пропустить</button>
+    <div id="end-success" style="display:none;margin-top:12px;padding:10px;background:#065f46;color:#d1fae5;border-radius:var(--radius-sm);font-size:.82rem;">
+      Спасибо за оставленный отзыв, до новых встреч
     </div>
   </div>
 </div>
 
-<!-- ═══════════════ SCREEN 7: RATING ═══════════════ -->
-<div class="screen" id="screen-rating">
-  <div class="card">
-    <div style="text-align:center;margin-bottom:20px">
-      <div class="logo" style="margin:0 auto 14px">🕌</div>
-      <div class="title">Благодарим за участие в туре</div>
-      <div class="subtitle">Пожалуйста, уделите минуту на ответы</div>
-    </div>
-
-    <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:16px">
-      <div style="font-size:14px;font-weight:600;text-align:center;margin-bottom:4px">Оцените качество тура</div>
-      <div class="stars-row" id="stars-row">
-        <button class="star-btn" data-val="1" onclick="setStar(1)">★</button>
-        <button class="star-btn" data-val="2" onclick="setStar(2)">★</button>
-        <button class="star-btn" data-val="3" onclick="setStar(3)">★</button>
-        <button class="star-btn" data-val="4" onclick="setStar(4)">★</button>
-        <button class="star-btn" data-val="5" onclick="setStar(5)">★</button>
-      </div>
-      <textarea class="rating-textarea" id="rating-comment"
-        placeholder="Расскажите о вашем впечатлении..."></textarea>
-      <div class="btn-row">
-        <button class="btn-skip" onclick="skipRating()">Пропустить</button>
-        <button class="btn-primary" style="flex:1" onclick="submitRating()">Отправить</button>
-      </div>
-    </div>
+<!-- ═══ Modals ═══ -->
+<div id="m-kiosk" class="modal-bg">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('m-kiosk')">✕</button>
+    <div class="modal-title">Отключение киоск-режима</div>
+    <div class="modal-subtitle">Введите PIN-код для отключения киоск режима</div>
+    <input id="kiosk-pin-input" placeholder="PIN-код" type="password" style="width:100%;padding:12px;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:.9rem;margin-bottom:14px;text-align:center;letter-spacing:.4em;"/>
+    <button class="btn btn-gold btn-big" onclick="verifyKioskPin()">Отключить</button>
   </div>
 </div>
 
-<!-- ═══════════════ SCREEN 8: DONE ═══════════════ -->
-<div class="screen" id="screen-done">
-  <div class="card">
-    <div style="text-align:center;margin-bottom:20px">
-      <div class="logo" style="margin:0 auto 14px">🕌</div>
-      <div class="title">Благодарим за участие в туре</div>
-      <div class="subtitle">Пожалуйста, прочтите правила перед выходом</div>
-    </div>
-
-    <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:20px;margin-bottom:16px;text-align:center">
-      <div style="font-size:14px;font-weight:600;margin-bottom:4px">Сдайте планшет и наушники</div>
-      <div style="font-size:12px;color:#888;margin-bottom:16px">
-        Сдайте планшет и наушники сотруднику, и не забудьте взять все вещественные входы
-      </div>
-      <div class="done-countdown" id="done-countdown">02:30</div>
-      <div style="font-size:11px;color:#666;margin-top:4px">Автоматический сброс через</div>
-    </div>
-
-    <button class="btn-primary" onclick="finishTour()">Завершить</button>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
+<div id="toasts"></div>
 
 <script>
-  // ── State ────────────────────────────────────────────────────
-  const state = {
-    lang: 'en',
-    deviceToken: /^\d{1,3}$/.test(localStorage.getItem('deviceToken') || '') ? localStorage.getItem('deviceToken') : null,
-    touristId: localStorage.getItem('touristId') ? +localStorage.getItem('touristId') : null,
-    sessionId: null,
-    selectedGuide: null,
-    ws: null,
-    tourStatus: 'waiting',
-    currentSection: null,
-    timerInterval: null,
-    timerRemaining: 0,
-    timerTotal: 0,
-    totalRemaining: 0,
-    totalTimerInterval: null,
-    doneCountdown: null,
-    selectedRating: 0,
-    pollInterval: null,
-    lobbyWs: null,
-    guideVideos: [],
-    guideVideoIndex: 0,
-    breakTimerInterval: null,
-    secTransInterval: null,
+/* ════ STATE ════ */
+let LANG = localStorage.getItem('iccu_lang') || 'ru';
+let state = {
+  deviceToken: null,
+  touristId: null,
+  sessionId: null,
+  selectedGuide: null,
+  selectedGuideObj: null,
+  guides: [],
+  specialists: [],
+  tourStatus: null,
+  currentSection: null,
+  currentHall: null,
+  timer: null,
+  breakRemain: 0,
+  exhibits: [],
+  guideVideos: [],
+  guideVideoIndex: 0,
+  sectionTransition: null,
+  hallTransition: null,
+  exhibitsVideo: null,
+  isAutoBreak: false,
+  isTechnicalStop: false,
+  totalTour: 0,
+  totalRemaining: 0,
+  view: 'video',           // 'video' | 'exhibits' | 'exhibit-detail' | 'audio' | 'transition'
+  currentExhibit: null,
+  currentExhibitImage: 0,
+  selectedRating: 0,
+  ws: null,
+  lobbyWs: null,
+  timerIv: null,
+  breakIv: null,
+  endCountdown: null,
+};
+
+/* ════ UTILS ════ */
+const API = p => `/${LANG}/api/v1${p}`;
+const WS_PROTO = location.protocol === 'https:' ? 'wss' : 'ws';
+
+function fmt(sec){sec=Math.max(0,Math.floor(sec||0));const m=Math.floor(sec/60),s=sec%60;return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;}
+function fmtH(sec){sec=Math.max(0,Math.floor(sec||0));const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;}
+
+async function req(method,path,body=null){
+  try{
+    const r=await fetch(API(path),{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+    const d=await r.json().catch(()=>null);
+    return {ok:r.ok,status:r.status,data:d};
+  }catch{return {ok:false,status:0,data:null};}
+}
+
+function toast(msg,type='info'){
+  const el=document.createElement('div');
+  el.className=`toast toast-${type}`;el.textContent=msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(()=>el.style.opacity='0',2700);
+  setTimeout(()=>el.remove(),3000);
+}
+function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function openModal(id){document.getElementById(id).classList.add('active');}
+function closeModal(id){document.getElementById(id).classList.remove('active');}
+
+function setWsStatus(s){
+  const dot=document.querySelector('#ws-indicator .ws-dot');
+  if(dot) dot.className='ws-dot '+(s==='ok'?'ok':s==='wait'?'wait':'no');
+}
+
+/* ════ Welcome ═══ */
+function setLang(btn,l){
+  LANG=l;localStorage.setItem('iccu_lang',l);
+  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+function toggleA11y(){
+  const sw=document.getElementById('a11y-switch');
+  const sel=document.getElementById('size-selector');
+  sw.classList.toggle('on');sel.classList.toggle('show');
+}
+function setSize(btn,size){
+  const map={small:'13px',medium:'15px',large:'17px'};
+  document.documentElement.style.setProperty('--font-size',map[size]||'15px');
+  document.querySelectorAll('.size-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+
+async function verifyKioskPin(){
+  const pin=document.getElementById('kiosk-pin-input').value.trim();
+  try{
+    const r=await fetch(API('/tour/kiosk-pin/'),{headers:{'X-Kiosk-Token':'demo'}});
+    if(!r.ok){toast('PIN проверка недоступна','error');return;}
+    const d=await r.json();
+    if(String(d.code)===String(pin)){toast('Kiosk mode disabled','success');closeModal('m-kiosk');}
+    else toast('Неверный PIN','error');
+  }catch{toast('Ошибка','error');}
+}
+
+/* ════ Rules / guide flow ═══ */
+async function goRules(){go('s-rules');}
+async function goConnect(){
+  // 1) register (or use existing device_token)
+  if(!state.deviceToken){
+    const r=await req('POST','/tour/register/',{device_name:'iPad test'});
+    if(!r.ok||!r.data){toast('Не удалось зарегистрироваться','error');return;}
+    state.deviceToken=r.data.device_token;
+    state.touristId=r.data.id;
+    localStorage.setItem('iccu_device_token',state.deviceToken);
+  }
+  document.getElementById('dev-id').textContent=`ID: ${String(state.deviceToken).padStart(6,'0')}`;
+  go('s-guide');
+  loadGuides();
+}
+
+/* ════ Guides ═══ */
+async function loadGuides(){
+  const grid=document.getElementById('guide-grid');
+  grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:20px">Загрузка...</div>`;
+  const r=await req('GET','/guide/guides/');
+  state.guides=r.data||[];
+  if(!state.guides.length){grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:20px">Гиды не найдены</div>`;return;}
+  grid.innerHTML=state.guides.map(g=>`
+    <div class="guide-card" onclick="selectGuide(${g.id},this)" data-id="${g.id}">
+      <div class="guide-vid-wrap" ${g.thumbnail?`style="background-image:url(${g.thumbnail})"`:''}>
+        ${g.video?`<div class="guide-play" onclick="event.stopPropagation();playPreview('${g.video}')">▶</div>`:''}
+      </div>
+      <div class="guide-name">${g.name}</div>
+    </div>`).join('');
+}
+function selectGuide(id,el){
+  state.selectedGuide=id;
+  state.selectedGuideObj=state.guides.find(g=>g.id===id);
+  document.querySelectorAll('.guide-card').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('btn-guide-select').disabled=false;
+}
+function playPreview(url){
+  // open fullscreen video preview in a lightweight way
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML=`<video src="${url}" controls autoplay style="max-width:90%;max-height:90%;"></video><button style="position:absolute;top:20px;right:20px;background:var(--card);border:none;color:#fff;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:1rem">✕</button>`;
+  overlay.onclick=e=>{if(e.target===overlay||e.target.tagName==='BUTTON')overlay.remove();};
+  document.body.appendChild(overlay);
+}
+async function doSelectGuide(){
+  if(!state.selectedGuide)return;
+  const r=await req('POST','/tour/select-guide/',{device_token:state.deviceToken,guide_id:state.selectedGuide});
+  if(r.ok){go('s-spec');loadSpecialists();connectLobby();}
+  else toast(r.data?.error||'Ошибка','error');
+}
+
+/* ════ Specialists ═══ */
+async function loadSpecialists(){
+  const r=await req('GET','/guide/specialists/');
+  renderSpecialists(r.data||[]);
+}
+function renderSpecialists(list){
+  state.specialists=list;
+  const grid=document.getElementById('spec-grid');
+  if(!list.length){
+    go('s-wait');
+    // Also load a background
+    fetch(API('/guide/backgrounds/')).then(r=>r.json()).then(bgs=>{
+      if(bgs?.length){document.getElementById('wait-bg').style.backgroundImage=`url(${bgs[0].image})`;}
+    });
+    return;
+  }
+  grid.innerHTML=list.map(s=>`
+    <div class="spec-card" onclick="selectSpec(${s.number},${s.active_session_id||'null'},this)">
+      <div class="spec-number">${s.number}</div>
+      <div class="spec-photo" ${s.avatar?`style="background-image:url(${s.avatar})"`:''}></div>
+      <div class="spec-name">${s.name||''}</div>
+      <div class="spec-action">Подключиться</div>
+    </div>`).join('');
+}
+async function selectSpec(number,sessionId,el){
+  document.querySelectorAll('.spec-card').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  el.querySelector('.spec-action').textContent='Подключение...';
+  document.getElementById('spec-status').textContent='';
+  const r=await req('POST','/tour/join/',{specialist_number:number,device_token:state.deviceToken});
+  if(r.ok){
+    state.sessionId=sessionId||r.data?.id;
+    go('s-wait-tour');
+    // Pick bg
+    fetch(API('/guide/backgrounds/')).then(rr=>rr.json()).then(bgs=>{
+      if(bgs?.length){document.getElementById('wait-bg-2').style.backgroundImage=`url(${bgs[Math.floor(Math.random()*bgs.length)].image})`;}
+    });
+    connectTour();
+  }else{
+    el.querySelector('.spec-action').textContent='Подключиться';
+    document.getElementById('spec-status').innerHTML=`<span style="background:var(--red);color:#fff;padding:6px 12px;border-radius:6px">${r.data?.error||'Ошибка подключения. Попробуйте снова'}</span>`;
+  }
+}
+
+/* ════ Lobby WS (listen for session assignment) ═══ */
+function connectLobby(){
+  if(state.lobbyWs)return;
+  const url=`${WS_PROTO}://${location.host}/ws/lobby/?device_token=${state.deviceToken}&lang=${LANG}`;
+  const lws=new WebSocket(url);state.lobbyWs=lws;
+  lws.onmessage=e=>{try{
+    const m=JSON.parse(e.data);
+    if(m.type==='specialist_list')renderSpecialists(m.specialists||[]);
+    else if(m.type==='session_assigned'&&!state.sessionId){
+      state.sessionId=m.session_id;
+      if(document.getElementById('s-spec').classList.contains('active'))go('s-wait-tour');
+      connectTour();
+    }
+  }catch{}};
+  lws.onclose=()=>{state.lobbyWs=null;};
+}
+function disconnectLobby(){if(state.lobbyWs){try{state.lobbyWs.close();}catch{}state.lobbyWs=null;}}
+
+/* ════ Tour WS ═══ */
+function connectTour(){
+  if(state.ws)return;
+  if(!state.sessionId)return;
+  setWsStatus('wait');
+  const url=`${WS_PROTO}://${location.host}/ws/tour/${state.sessionId}/?device_token=${state.deviceToken}&lang=${LANG}`;
+  const ws=new WebSocket(url);state.ws=ws;
+  ws.onopen=()=>{setWsStatus('ok');disconnectLobby();};
+  ws.onclose=e=>{
+    setWsStatus('no');state.ws=null;
+    if(e.code===4010){toast('Тур завершён','info');showEnd();}
+    else if(e.code===4003){toast('Вы были отключены','error');resetToHome();}
   };
+  ws.onerror=()=>setWsStatus('no');
+  ws.onmessage=e=>{try{onMsg(JSON.parse(e.data));}catch(err){console.error(err);}};
+}
 
-  const API_BASE = () => `/${state.lang}/api/v1`;
-  const WS_HOST = location.host;
-  const WS_PROTO = location.protocol === 'https:' ? 'wss' : 'ws';
+function onMsg(m){
+  if(m.type==='tour_info')applyTourInfo(m);
+  else if(m.type==='tour_finished'){showEnd();}
+  else if(m.type==='kicked'){toast('Вы были отключены специалистом','error');resetToHome();}
+}
 
-  // ── WS status indicator ───────────────────────────────────
-  function setWsStatus(status) {
-    const dot = document.getElementById('ws-dot');
-    const label = document.getElementById('ws-label');
-    dot.className = 'ws-dot';
-    if (status === 'connected') {
-      dot.classList.add('connected');
-      label.textContent = 'WebSocket подключён';
-    } else if (status === 'connecting') {
-      dot.classList.add('connecting');
-      label.textContent = 'Подключение...';
-    } else if (status === 'error') {
-      dot.classList.add('error');
-      label.textContent = 'Ошибка подключения';
-    } else {
-      label.textContent = 'Не подключён';
-    }
+/* ════ Apply tour info (tourist) ═══ */
+function applyTourInfo(d){
+  // Move to dashboard if we're not there yet
+  if(document.getElementById('s-wait-tour').classList.contains('active')&&d.status!=='waiting'){
+    go('s-dashboard');
   }
 
-  // ── Screen navigation ─────────────────────────────────────
-  function showScreen(name) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById('screen-' + name).classList.add('active');
+  state.tourStatus=d.status;
+  state.currentSection=d.current_section;
+  state.currentHall=d.current_hall;
+  state.timer=d.timer;
+  state.exhibits=d.exhibits||[];
+  state.guideVideos=d.guide_videos||[];
+  state.sectionTransition=d.section_transition;
+  state.hallTransition=d.hall_transition;
+  state.exhibitsVideo=d.exhibits_video;
+  state.isAutoBreak=!!d.is_auto_break;
+  state.isTechnicalStop=!!d.is_technical_stop;
+  state.totalTour=d.total_tour_seconds||0;
+  state.totalRemaining=d.total_remaining_seconds||0;
+  state.breakRemain=d.break_remaining_seconds||0;
 
-    if (name === 'rules') loadRules();
-    if (name === 'guide-select') loadGuides();
-    if (name === 'specialist-select') { loadSpecialists(); }
+  document.getElementById('tech-stop-overlay').classList.toggle('show',state.isTechnicalStop);
+  renderStatusBadge();
+  renderBottomBar();
+  renderContent();
+  renderGuideVideo();
+}
+
+function renderStatusBadge(){
+  const el=document.getElementById('status-badge');
+  const map={waiting:'Ожидание',in_progress:'Тур идёт',on_break:'Перерыв',section_transition:'Переход',hall_transition:'Переход (зал)',finished:'Завершён'};
+  el.innerHTML=`<span class="status-badge status-${state.tourStatus}">${map[state.tourStatus]||state.tourStatus}</span>`;
+}
+
+function renderBottomBar(){
+  document.getElementById('loc-hall').textContent=state.currentHall?.name||'—';
+  document.getElementById('loc-section').textContent=state.currentSection?.name||'—';
+  const tl=document.getElementById('timer-label');
+  const tv=document.getElementById('timer-value');
+  tv.classList.remove('red','orange');
+  if(state.tourStatus==='in_progress'){
+    tl.textContent='Таймер раздела';
+    tv.textContent=fmt(state.timer?.section_remaining_seconds||0);
+    startSecTimer();
+  }else if(state.tourStatus==='on_break'&&state.isAutoBreak){
+    tl.textContent='Перерыв';tv.textContent=fmt(state.breakRemain);tv.classList.add('orange');
+    startBreakTimer();
+  }else if(state.tourStatus==='on_break'&&!state.isAutoBreak){
+    tl.textContent=state.isTechnicalStop?'Техническая пауза':'Пауза';
+    tv.textContent=fmt(state.timer?.section_remaining_seconds||0);tv.classList.add('red');
+    stopSecTimer();stopBreakTimer();
+  }else if(state.tourStatus==='section_transition'||state.tourStatus==='hall_transition'){
+    tl.textContent='Время на переход';tv.textContent=fmt(state.breakRemain);tv.classList.add('red');
+    startBreakTimer();
+  }else{
+    tl.textContent='Таймер';tv.textContent='00:00';stopSecTimer();stopBreakTimer();
   }
+}
 
-  // ── Language ──────────────────────────────────────────────
-  function selectLang(btn) {
-    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    state.lang = btn.dataset.lang;
-  }
+/* ════ Content views ═══ */
+function renderContent(){
+  const body=document.getElementById('content-body');
+  const title=document.getElementById('ct-title');
+  title.textContent=state.currentSection?.name||'—';
 
-  function setTheme(theme, btn) {
-    document.querySelectorAll('#theme-toggle .toggle-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    const accessPanel = document.getElementById('access-panel');
-    accessPanel.style.display = theme === 'light' ? 'block' : 'none';
-  }
-
-  function setFontSize(size, btn) {
-    document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    const map = { small: '13px', medium: '15px', large: '17px' };
-    document.body.style.fontSize = map[size];
-  }
-
-  // ── Rules ─────────────────────────────────────────────────
-  async function loadRules() {
-    const grid = document.getElementById('rules-grid');
-    try {
-      const res = await fetch(`${API_BASE()}/guide/rules/`);
-      const data = await res.json();
-      const rules = Array.isArray(data) ? data : (data.results || []);
-      if (!rules.length) {
-        grid.innerHTML = `
-          <div class="rule-card"><div class="rule-num">1. Общие правила</div>
-            <div class="rule-title">Общие правила</div>
-            <div class="rule-text">Надеть что-то на юбку, руки нажимайте аккуратно</div></div>
-          <div class="rule-card"><div class="rule-num">2. Перерывы в залах</div>
-            <div class="rule-title">Перерывы в залах</div>
-            <div class="rule-text">Весь тур будет у вас на руках, каждый активный интерактивный объект</div></div>
-          <div class="rule-card"><div class="rule-num">3. Подключение к специалисту</div>
-            <div class="rule-title">Подключение к специалисту</div>
-            <div class="rule-text">Найдите номер своего специалиста на нём бейдже и следуйте его номеру в программе тура</div></div>
-          <div class="rule-card"><div class="rule-num">4. Навигация</div>
-            <div class="rule-title">Навигация</div>
-            <div class="rule-text">Следуйте за специалистом, чтобы перемещаться в правильном направлении</div></div>`;
-        return;
-      }
-      grid.innerHTML = rules.map((r, i) => `
-        <div class="rule-card">
-          <div class="rule-num">${i + 1}. ${r.title || r.title_ru || ''}</div>
-          <div class="rule-title">${r.title || r.title_ru || ''}</div>
-          <div class="rule-text">${stripMarkdown(r.content || r.content_ru || '')}</div>
-        </div>`).join('');
-    } catch (e) {
-      grid.innerHTML = '<div style="color:#e74c3c;text-align:center;grid-column:1/-1">Ошибка загрузки правил</div>';
-    }
-  }
-
-  function stripMarkdown(md) {
-    return md.replace(/[#*_`[\]]/g, '').replace(/\n/g, ' ').slice(0, 200);
-  }
-
-  // ── Register tourist ──────────────────────────────────────
-  async function registerTourist() {
-    if (state.deviceToken) {
-      // Verify the stored token still exists in DB
-      try {
-        const check = await fetch(`${API_BASE()}/tour/status/?device_token=${state.deviceToken}`);
-        const checkData = await check.json();
-        if (checkData.token_valid === false) {
-          // Token not in DB (e.g. DB was reset) — clear and re-register
-          state.deviceToken = null;
-          state.touristId = null;
-          localStorage.removeItem('deviceToken');
-          localStorage.removeItem('touristId');
-        }
-      } catch (e) { /* network error — proceed with stored token */ }
-    }
-    if (state.deviceToken) {
-      document.getElementById('spec-screen-id').textContent = `ID: ${state.deviceToken}`;
-      connectLobby();
-      showScreen('guide-select');
-      return;
-    }
-    try {
-      const res = await fetch(`${API_BASE()}/tour/register/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!res.ok) {
-        const err = await res.text();
-        console.error('Register failed:', res.status, err);
-        showToast(`Ошибка регистрации (${res.status})`);
-        return;
-      }
-      const data = await res.json();
-      if (!data.device_token) {
-        showToast('Сервер не вернул токен устройства');
-        return;
-      }
-      state.deviceToken = data.device_token;
-      state.touristId = data.id;
-      localStorage.setItem('deviceToken', data.device_token);
-      localStorage.setItem('touristId', data.id);
-      document.getElementById('spec-screen-id').textContent = `ID: ${data.device_token}`;
-      connectLobby();
-      showScreen('guide-select');
-    } catch (e) {
-      console.error('Register error:', e);
-      showToast('Ошибка регистрации. Проверьте соединение.');
-    }
-  }
-
-  // ── Lobby WebSocket (real-time specialist list + session assignment) ──
-  function connectLobby() {
-    if (state.lobbyWs) return;
-    if (!state.deviceToken) return;
-
-    const url = `${WS_PROTO}://${WS_HOST}/ws/lobby/?device_token=${state.deviceToken}&lang=${state.lang}`;
-    const lws = new WebSocket(url);
-    state.lobbyWs = lws;
-
-    lws.onopen = () => {
-      console.log('Lobby WS connected');
-      setWsStatus('connected');
-    };
-
-    lws.onmessage = (e) => {
-      const msg = JSON.parse(e.data);
-      if (msg.type === 'specialist_list') {
-        renderSpecialistList(msg.specialists || []);
-      } else if (msg.type === 'session_assigned') {
-        // Specialist added us to a session
-        if (!state.sessionId) {
-          state.sessionId = msg.session_id;
-          disconnectLobby();
-          connectWS();
-          showScreen('waiting');
-          showToast('Специалист добавил вас в тур');
-        }
-      }
-    };
-
-    lws.onclose = () => {
-      state.lobbyWs = null;
-      if (!state.sessionId) setWsStatus('disconnected');
-    };
-
-    lws.onerror = () => {
-      setWsStatus('error');
-      // Fallback to HTTP polling if lobby WS fails
-      startSessionPoll();
-    };
-  }
-
-  function disconnectLobby() {
-    if (state.lobbyWs) { state.lobbyWs.close(); state.lobbyWs = null; }
-  }
-
-  // Fallback HTTP polling (if lobby WS not available)
-  function startSessionPoll() {
-    stopSessionPoll();
-    if (!state.deviceToken) return;
-    state.pollInterval = setInterval(async () => {
-      try {
-        const res = await fetch(`${API_BASE()}/tour/status/?device_token=${state.deviceToken}`);
-        const data = await res.json();
-        if (data.session_id && !state.sessionId) {
-          stopSessionPoll();
-          state.sessionId = data.session_id;
-          connectWS();
-          showScreen('waiting');
-        }
-      } catch {}
-    }, 3000);
-  }
-
-  function stopSessionPoll() {
-    if (state.pollInterval) { clearInterval(state.pollInterval); state.pollInterval = null; }
-  }
-
-  // ── Guides ────────────────────────────────────────────────
-  async function loadGuides() {
-    const scroll = document.getElementById('guides-scroll');
-    try {
-      const res = await fetch(`${API_BASE()}/guide/guides/`);
-      const data = await res.json();
-      const guides = Array.isArray(data) ? data : (data.results || []);
-
-      if (!guides.length) {
-        scroll.innerHTML = '<div style="color:#555;padding:20px">Нет доступных гидов</div>';
-        document.getElementById('btn-guide-next').disabled = false;
-        return;
-      }
-
-      scroll.innerHTML = guides.map(g => renderGuideCard(g, state.selectedGuide?.id === g.id)).join('');
-      document.getElementById('btn-guide-next').disabled = !state.selectedGuide;
-    } catch (e) {
-      scroll.innerHTML = '<div style="color:#e74c3c;padding:20px">Ошибка загрузки гидов</div>';
-    }
-  }
-
-  function renderGuideCard(g, selected) {
-    const thumb = g.thumbnail
-      ? `<img class="guide-thumb" src="${g.thumbnail}" alt="${g.name}">`
-      : `<div class="guide-thumb-placeholder">👤</div>`;
-    const safeG = JSON.stringify(g).replace(/"/g, '&quot;');
-    const signLang = g.is_sign_language ? '🤟 Жестовый язык' : '';
-    return `
-      <div class="guide-card ${selected ? 'selected' : ''}" data-guide-id="${g.id}" onclick="selectGuide(JSON.parse(this.dataset.guideJson));" data-guide-json="${safeG}">
-        <div class="play-overlay">
-          ${thumb}
-          ${g.video ? `<div class="play-btn">▶</div>` : ''}
-        </div>
-        <div class="guide-info">
-          <div class="guide-name">${g.name}</div>
-          <div class="guide-desc">${signLang}</div>
-          ${selected ? '<div class="selected-badge">Выбран</div>' : ''}
-        </div>
+  // Transition screens
+  const transitionEnded=state.breakRemain<=0;
+  const waitingHint=transitionEnded?`<div class="transition-note" style="background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold);margin-top:10px">⏳ Ожидаем продолжения тура от специалиста</div>`:'';
+  if(state.tourStatus==='hall_transition'&&state.hallTransition){
+    state.view='transition';
+    body.innerHTML=`
+      <div class="transition-panel">
+        <div class="transition-hall-name">${state.currentHall?.name||'Следующий зал'}</div>
+        ${state.hallTransition.map_image?`<img src="${state.hallTransition.map_image}" class="transition-map" alt="map">`:''}
+        <div class="transition-note">Следуйте за специалистом или по метке на карте</div>
+        ${waitingHint}
+        ${state.hallTransition.video?`<video src="${state.hallTransition.video}" autoplay loop muted style="max-width:100%;margin-top:14px;border-radius:var(--radius)"></video>`:''}
       </div>`;
+    return;
   }
-
-  async function selectGuide(g) {
-    state.selectedGuide = g;
-    document.getElementById('btn-guide-next').disabled = false;
-    // Update selection styles without re-fetching
-    document.querySelectorAll('.guide-card').forEach(el => {
-      const isSelected = el.dataset.guideId == g.id;
-      el.classList.toggle('selected', isSelected);
-      const badge = el.querySelector('.selected-badge');
-      if (badge) badge.remove();
-      if (isSelected) {
-        const info = el.querySelector('.guide-info');
-        if (info) {
-          const b = document.createElement('div');
-          b.className = 'selected-badge';
-          b.textContent = 'Выбран';
-          info.appendChild(b);
-        }
-      }
-    });
-    // Update dashboard guide panel
-    document.getElementById('guide-panel-name').textContent = g.name;
-    document.getElementById('guide-panel-desc').textContent = 'Выберите экспонат чтобы узнать о нём подробнее.';
-    if (g.video) {
-      const vid = document.getElementById('guide-video');
-      vid.src = g.video;
-      vid.style.display = 'block';
-      document.getElementById('guide-video-placeholder').style.display = 'none';
-      vid.play().catch(() => {});
-    }
-    // Save guide selection on server
-    if (state.deviceToken) {
-      try {
-        await fetch(`${API_BASE()}/tour/select-guide/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ device_token: state.deviceToken, guide_id: g.id }),
-        });
-      } catch (e) {
-        console.error('Failed to save guide selection:', e);
-      }
-    }
-  }
-
-  // ── Specialists ───────────────────────────────────────────
-  async function loadSpecialists() {
-    // Initial HTTP fetch; lobby WS will push updates after this
-    const scroll = document.getElementById('specialists-scroll');
-    try {
-      const res = await fetch(`${API_BASE()}/guide/specialists/`);
-      const data = await res.json();
-      const specs = Array.isArray(data) ? data : (data.results || []);
-      renderSpecialistList(specs);
-    } catch (e) {
-      scroll.innerHTML = '<div style="color:#e74c3c;padding:20px">Ошибка загрузки</div>';
-    }
-  }
-
-  function renderSpecialistList(specs) {
-    const scroll = document.getElementById('specialists-scroll');
-    if (!specs.length) {
-      scroll.innerHTML = '<div style="color:#555;padding:20px">Нет активных специалистов</div>';
-      return;
-    }
-    scroll.innerHTML = specs.map(s => renderSpecCard(s)).join('');
-  }
-
-  function renderSpecCard(s) {
-    const hasSession = !!s.active_session_id;
-    const avatar = s.avatar
-      ? `<img class="spec-avatar" src="${s.avatar}" alt="${s.name}">`
-      : `<div class="spec-avatar-placeholder">👤</div>`;
-    return `
-      <div class="spec-card" id="spec-card-${s.id}">
-        <div class="spec-num">${s.number}</div>
-        ${avatar}
-        <div class="spec-name">${s.name}</div>
-        <button class="spec-join-btn" ${!hasSession ? 'disabled' : ''}
-          onclick="joinSpecialist(${s.id}, ${s.number}, ${s.active_session_id || 'null'})">
-          ${hasSession ? 'Подключиться' : 'Недоступен'}
-        </button>
+  if(state.tourStatus==='section_transition'&&state.sectionTransition){
+    state.view='transition';
+    body.innerHTML=`
+      <div class="transition-panel">
+        <div class="transition-hall-name">Переход: ${state.sectionTransition.from_section||''}</div>
+        ${state.sectionTransition.map_image?`<img src="${state.sectionTransition.map_image}" class="transition-map" alt="map">`:''}
+        <div class="transition-note">Следуйте за специалистом</div>
+        ${waitingHint}
+        ${state.sectionTransition.video?`<video src="${state.sectionTransition.video}" autoplay loop muted style="max-width:100%;margin-top:14px;border-radius:var(--radius)"></video>`:''}
       </div>`;
+    return;
   }
 
-  async function joinSpecialist(specId, specNumber, sessionId) {
-    const errEl = document.getElementById('spec-error');
-    errEl.textContent = '';
-    if (!state.deviceToken) { errEl.textContent = 'Сначала пройдите регистрацию'; return; }
-    try {
-      const res = await fetch(`${API_BASE()}/tour/join/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ specialist_number: specNumber, device_token: state.deviceToken }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        errEl.textContent = data.error || 'Ошибка подключения';
-        return;
+  // Auto break → exhibits view
+  if(state.tourStatus==='on_break'&&state.isAutoBreak){
+    state.view='exhibits';
+    renderExhibits(body);
+    return;
+  }
+
+  // Default: current view
+  if(state.view==='exhibits')renderExhibits(body);
+  else if(state.view==='exhibit-detail')renderExhibitDetail(body);
+  else if(state.view==='audio')renderAudio(body);
+  else{
+    // Video: show section video or default
+    state.view='video';
+    const video=state.currentSection?.video;
+    if(video) body.innerHTML=`<video src="${video}" autoplay loop muted controls></video>`;
+    else if(state.currentHall?.map_image) body.innerHTML=`<img src="${state.currentHall.map_image}" class="contain" alt="map">`;
+    else body.innerHTML=`<div style="padding:30px;color:var(--muted);text-align:center">Нет видео</div>`;
+  }
+}
+
+function renderExhibits(body){
+  if(!state.exhibits.length){body.innerHTML=`<div style="padding:30px;color:var(--muted);text-align:center">Экспонаты не найдены</div>`;return;}
+  body.innerHTML=`<div class="exhibits-grid">${state.exhibits.map(ex=>{
+    const img=ex.images?.[0]||'';
+    const icons=[];
+    if(ex.has_video)icons.push(`<span class="ico" title="video">🎬</span>`);
+    if(ex.has_audio)icons.push(`<span class="ico" title="audio">🎵</span>`);
+    if(ex.has_photos)icons.push(`<span class="ico" title="photo">🖼</span>`);
+    return `<div class="exhibit-tile" onclick="openExhibit(${ex.id})">
+      ${img?`<img src="${img}" alt="">`:''}
+      <div class="exhibit-tile-name">${ex.title||''}</div>
+      <div class="exhibit-tile-icons">${icons.join('')}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+function openExhibit(id){
+  const ex=state.exhibits.find(e=>e.id===id);
+  if(!ex)return;
+  state.currentExhibit=ex;state.currentExhibitImage=0;state.view='exhibit-detail';
+  renderContent();
+}
+function renderExhibitDetail(body){
+  const ex=state.currentExhibit;if(!ex){state.view='exhibits';renderContent();return;}
+  const img=ex.images?.[state.currentExhibitImage]||'';
+  body.innerHTML=`
+    <div class="exhibit-detail" style="grid-template-rows:1fr auto;grid-template-columns:1fr 1fr;">
+      <div class="exhibit-detail-media" style="grid-row:1">
+        ${img?`<img src="${img}" alt="">`:''}
+      </div>
+      <div class="exhibit-detail-info" style="grid-row:1">
+        <div class="exhibit-detail-title">${ex.title||''}</div>
+        <div class="exhibit-detail-desc">${ex.description||''}</div>
+      </div>
+      <div class="exhibit-thumbs" style="grid-column:1/-1;grid-row:2">
+        <button onclick="backToExhibits()">← Назад</button>
+        ${(ex.images||[]).map((img,i)=>`<img src="${img}" class="${i===state.currentExhibitImage?'sel':''}" onclick="selectExhibitImage(${i})">`).join('')}
+        ${ex.audio?`<button onclick="openAudio('${ex.audio}')" title="Audio">🎵</button>`:''}
+        ${ex.video?`<button onclick="openExhibitVideo('${ex.video}')" title="Video">🎬</button>`:''}
+      </div>
+    </div>`;
+}
+function selectExhibitImage(i){state.currentExhibitImage=i;renderExhibitDetail(document.getElementById('content-body'));}
+function backToExhibits(){state.view='exhibits';renderContent();}
+function openExhibitVideo(url){
+  const body=document.getElementById('content-body');
+  body.innerHTML=`<video src="${url}" controls autoplay style="width:100%;height:100%"></video>`;
+}
+function openAudio(url){state.view='audio';state._audioUrl=url;renderContent();}
+function renderAudio(body){
+  const url=state._audioUrl;
+  body.innerHTML=`
+    <div class="audio-player">
+      <div style="margin-bottom:20px;display:flex;align-items:center;gap:8px">
+        <button class="btn" onclick="backToExhibits()">← Назад</button>
+      </div>
+      <div class="audio-wave"></div>
+      <audio id="ex-audio" src="${url}" preload="metadata"></audio>
+      <div class="audio-controls">
+        <button onclick="toggleExAudio()" id="ex-audio-btn">▶</button>
+        <span class="guide-time" id="ex-audio-time">00:00 / 00:00</span>
+        <div class="audio-progress"><div class="audio-progress-fill" id="ex-audio-fill"></div></div>
+      </div>
+    </div>`;
+  const a=document.getElementById('ex-audio');
+  a.ontimeupdate=()=>{
+    const p=(a.currentTime/(a.duration||1))*100;
+    document.getElementById('ex-audio-fill').style.width=`${p}%`;
+    document.getElementById('ex-audio-time').textContent=`${fmt(a.currentTime)} / ${fmt(a.duration||0)}`;
+  };
+}
+function toggleExAudio(){
+  const a=document.getElementById('ex-audio');const b=document.getElementById('ex-audio-btn');
+  if(a.paused){a.play();b.textContent='⏸';}else{a.pause();b.textContent='▶';}
+}
+function switchView(v){
+  if(v==='video'){state.view='video';renderContent();}
+  else if(v==='exhibits'){state.view='exhibits';renderContent();}
+}
+
+/* ════ Guide video playback ═══ */
+function renderGuideVideo(){
+  const v=document.getElementById('guide-video');
+  const a=document.getElementById('exhibits-audio-bg');
+  const onBreak=state.tourStatus==='on_break'&&state.isAutoBreak;
+  const desc=document.getElementById('gv-desc');
+
+  // During auto_break — show/play exhibits_video if present
+  if(onBreak&&state.exhibitsVideo){
+    if(v.src!==state.exhibitsVideo){v.src=state.exhibitsVideo;v.play().catch(()=>{});}
+    return;
+  }
+
+  // During section transition — play transition video if present
+  if(state.tourStatus==='section_transition'&&state.sectionTransition?.video){
+    if(v.src!==state.sectionTransition.video){v.src=state.sectionTransition.video;v.play().catch(()=>{});}
+    return;
+  }
+  if(state.tourStatus==='hall_transition'&&state.hallTransition?.video){
+    if(v.src!==state.hallTransition.video){v.src=state.hallTransition.video;v.play().catch(()=>{});}
+    return;
+  }
+
+  // In progress — first guide video
+  const gv=state.guideVideos?.[state.guideVideoIndex];
+  if(gv?.video&&v.src!==gv.video){
+    v.src=gv.video;v.play().catch(()=>{});
+    if(gv.subtitles)desc.textContent=gv.subtitles;
+  }
+  if(!gv?.video){v.removeAttribute('src');v.load();}
+
+  if(state.selectedGuideObj)document.getElementById('gv-specnum').textContent=state.selectedGuideObj.name||'';
+}
+
+function toggleGuideVideo(){
+  const v=document.getElementById('guide-video');const b=document.getElementById('gv-play');
+  if(v.paused){v.play();b.textContent='⏸';}else{v.pause();b.textContent='▶';}
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const v=document.getElementById('guide-video');
+  if(v){
+    v.ontimeupdate=()=>{
+      const p=(v.currentTime/(v.duration||1))*100;
+      const fill=document.getElementById('gv-progress');
+      if(fill)fill.style.width=`${p}%`;
+      const t=document.getElementById('gv-time');
+      if(t)t.textContent=`${fmt(v.currentTime)} / ${fmt(v.duration||0)}`;
+    };
+  }
+});
+
+/* ════ Timers (local countdown) ═══ */
+function startSecTimer(){
+  stopSecTimer();
+  state.timerIv=setInterval(()=>{
+    if(state.isTechnicalStop)return;
+    if(state.timer&&state.timer.section_remaining_seconds>0){
+      state.timer.section_remaining_seconds--;
+      document.getElementById('timer-value').textContent=fmt(state.timer.section_remaining_seconds);
+    }
+  },1000);
+}
+function stopSecTimer(){if(state.timerIv){clearInterval(state.timerIv);state.timerIv=null;}}
+function startBreakTimer(){
+  stopBreakTimer();
+  state.breakIv=setInterval(()=>{
+    if(state.isTechnicalStop)return;
+    if(state.breakRemain>0){
+      state.breakRemain--;
+      document.getElementById('timer-value').textContent=fmt(state.breakRemain);
+      if(state.breakRemain===0){
+        stopBreakTimer();
+        // Показать хинт "Ожидаем продолжения" на переходе
+        if(state.tourStatus==='section_transition'||state.tourStatus==='hall_transition')renderContent();
       }
-      state.sessionId = sessionId || data.id;
-      disconnectLobby();
-      stopSessionPoll();
-      connectWS();
-      showScreen('waiting');
-    } catch (e) {
-      errEl.textContent = 'Ошибка сети. Попробуйте ещё раз.';
     }
+  },1000);
+}
+function stopBreakTimer(){if(state.breakIv){clearInterval(state.breakIv);state.breakIv=null;}}
+
+/* ════ Leave / end ═══ */
+async function doLeave(){
+  if(!state.deviceToken)return resetToHome();
+  if(confirm('Покинуть тур?')){
+    await req('POST','/tour/leave/',{device_token:state.deviceToken});
+    try{state.ws?.close();}catch{}
+    resetToHome();
   }
+}
+function resetToHome(){
+  try{state.ws?.close();}catch{}
+  try{state.lobbyWs?.close();}catch{}
+  state.ws=null;state.lobbyWs=null;state.sessionId=null;
+  state.selectedGuide=null;state.selectedGuideObj=null;
+  go('s-welcome');
+}
 
-  // ── WebSocket ─────────────────────────────────────────────
-  function connectWS() {
-    if (state.ws) state.ws.close();
-    const url = `${WS_PROTO}://${WS_HOST}/ws/tour/${state.sessionId}/?device_token=${state.deviceToken}&lang=${state.lang}`;
-    setWsStatus('connecting');
-    state.ws = new WebSocket(url);
-
-    state.ws.onopen = () => {
-      setWsStatus('connected');
-    };
-    state.ws.onclose = (e) => {
-      setWsStatus('disconnected');
-      if (e.code === 4003) { showScreen('rules'); showToast('Вы были отключены специалистом'); }
-    };
-    state.ws.onerror = () => setWsStatus('error');
-    state.ws.onmessage = (ev) => {
-      try { handleWsMessage(JSON.parse(ev.data)); } catch {}
-    };
+/* ════ End + rating ═══ */
+function showEnd(){
+  try{state.ws?.close();}catch{}state.ws=null;
+  go('s-end');
+}
+function setRating(n){
+  state.selectedRating=n;
+  document.querySelectorAll('#stars .star').forEach((el,i)=>el.classList.toggle('fill',i<n));
+  document.getElementById('btn-end-action').textContent=n?'Отправить':'Пропустить';
+}
+async function submitRating(){
+  if(state.selectedRating){
+    const text=document.getElementById('rating-text').value;
+    await req('POST','/tour/rating/',{device_token:state.deviceToken,rating:state.selectedRating,comment:text});
+    document.getElementById('end-success').style.display='block';
   }
+  document.getElementById('rating-block').style.display='none';
+  document.getElementById('end-sub').textContent='Пожалуйста, прочтите правила перед выходом';
+  document.getElementById('end-countdown-block').style.display='block';
+  document.getElementById('btn-end-action').style.display='none';
+  startEndCountdown();
+}
+function startEndCountdown(){
+  let s=150; // 2:30
+  const el=document.getElementById('end-countdown');
+  const tick=()=>{
+    const m=Math.floor(s/60),sec=s%60;
+    el.textContent=`${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+    s--;
+    if(s<0){clearInterval(state.endCountdown);finishEnd();}
+  };
+  tick();state.endCountdown=setInterval(tick,1000);
+}
+function finishEnd(){
+  document.getElementById('end-countdown-block').innerHTML=`<button class="btn btn-gold btn-big" onclick="resetToHome()">Завершить</button>`;
+}
 
-  function handleWsMessage(msg) {
-    const type = msg.type;
-
-    if (type === 'tour_info') {
-      applySessionState(msg);
-    } else if (type === 'tour_finished') {
-      state.tourStatus = 'finished';
-      clearInterval(state.timerInterval);
-      clearInterval(state.totalTimerInterval);
-      showScreen('rating');
-    } else if (type === 'kicked') {
-      if (state.ws) state.ws.close();
-      showScreen('specialist-select');
-      showToast('Вы были отключены от тура');
-    }
-  }
-
-  function applySessionState(msg) {
-    state.tourStatus = msg.status || state.tourStatus;
-    state.currentSection = msg.current_section || null;
-
-    // Badge
-    const badge = document.getElementById('dash-status-badge');
-    const statusMap = {
-      waiting: ['waiting', 'Ожидание'],
-      in_progress: ['in-progress', 'В туре'],
-      on_break: ['on-break', 'Перерыв'],
-      section_transition: ['on-break', 'Переход (раздел)'],
-      hall_transition: ['on-break', 'Переход (зал)'],
-      finished: ['finished', 'Завершён'],
-    };
-    const [cls, label] = statusMap[state.tourStatus] || ['waiting', state.tourStatus];
-    badge.className = `status-badge ${cls}`;
-    badge.textContent = label;
-
-    // Section & hall info (unified format: current_hall is separate field)
-    const sec = msg.current_section;
-    const hall = msg.current_hall;
-    if (sec) {
-      const hallName = hall ? hall.name : '—';
-      document.getElementById('dash-hall-name').textContent = hallName.toUpperCase();
-      document.getElementById('dash-section-name').textContent = sec.name;
-      document.getElementById('info-section-name').textContent = sec.name;
-      document.getElementById('info-hall-name').textContent = hallName;
-      document.getElementById('tb-hall').textContent = hallName;
-    }
-
-    // Exhibits (come as separate array from tourist extras)
-    if (msg.exhibits && msg.exhibits.length) {
-      renderExhibits(msg.exhibits);
-    } else if (!sec) {
-      document.getElementById('exhibits-grid').innerHTML = '<div class="no-exhibits">Ожидание начала тура...</div>';
-    }
-
-    // Guide videos (sequential playlist for current section)
-    if (msg.guide_videos) {
-      updateGuideVideos(msg.guide_videos);
-    }
-
-    // Section video
-    const secVideoWrap = document.getElementById('section-video-wrap');
-    const secVideoEl = document.getElementById('section-video');
-    if (sec && sec.video) {
-      secVideoEl.src = sec.video;
-      secVideoWrap.style.display = 'block';
-    } else {
-      secVideoEl.src = '';
-      secVideoWrap.style.display = 'none';
-    }
-
-    // Hall map
-    const hallMapImg = document.getElementById('hall-map-img');
-    const hallMapRow = document.getElementById('hall-map-row');
-    if (hall && hall.map_image) {
-      hallMapImg.src = hall.map_image;
-      hallMapRow.style.display = 'block';
-    } else {
-      hallMapRow.style.display = 'none';
-    }
-
-    // Section transition overlay (map + timer from previous section)
-    const secTransOverlay = document.getElementById('section-transition-overlay');
-    const secTransMap = document.getElementById('sec-trans-map');
-    const secTransTimer = document.getElementById('sec-trans-timer');
-    clearInterval(state.secTransInterval);
-
-    if (msg.section_transition && msg.section_transition.transition_seconds > 0 && state.tourStatus !== 'section_transition') {
-      const tr = msg.section_transition;
-      document.getElementById('sec-trans-title').textContent = 'Переход к следующему разделу';
-      document.getElementById('sec-trans-sub').textContent = `Следуйте от "${tr.from_section}" к "${sec ? sec.name : ''}"`;
-      if (tr.map_image) {
-        secTransMap.src = tr.map_image;
-        secTransMap.style.display = 'block';
-      } else {
-        secTransMap.style.display = 'none';
+/* ════ Persistent state on reload ═══ */
+(async function init(){
+  const tok=localStorage.getItem('iccu_device_token');
+  if(tok){
+    state.deviceToken=+tok;
+    // Check status to see if we're in a session already
+    const r=await req('GET',`/tour/status/?device_token=${tok}`);
+    if(r.ok&&r.data?.token_valid){
+      if(r.data.session_id){
+        state.sessionId=r.data.session_id;
+        // Jump to waiting/dashboard
+        go('s-wait-tour');
+        connectTour();
       }
-      // Show overlay with countdown
-      secTransOverlay.classList.add('visible');
-      let remain = tr.transition_seconds;
-      const updTransTimer = () => {
-        const m = Math.floor(remain / 60).toString().padStart(2, '0');
-        const s = (remain % 60).toString().padStart(2, '0');
-        secTransTimer.textContent = `${m}:${s}`;
-      };
-      secTransTimer.style.display = 'block';
-      updTransTimer();
-      state.secTransInterval = setInterval(() => {
-        remain = Math.max(0, remain - 1);
-        updTransTimer();
-        if (remain <= 0) {
-          clearInterval(state.secTransInterval);
-          secTransOverlay.classList.remove('visible');
-        }
-      }, 1000);
-    } else {
-      secTransOverlay.classList.remove('visible');
-    }
-
-    // Break overlay
-    clearInterval(state.breakTimerInterval);
-    const breakOverlay = document.getElementById('break-overlay');
-    const breakIcon = document.getElementById('break-icon');
-    const breakTitle = document.getElementById('break-title');
-    const breakSub = document.getElementById('break-sub');
-    const breakMapImg = document.getElementById('break-map-image');
-    const breakTimerEl = document.getElementById('break-timer');
-
-    if (state.tourStatus === 'on_break' || state.tourStatus === 'hall_transition' || state.tourStatus === 'section_transition') {
-      breakOverlay.classList.add('visible');
-
-      if (state.tourStatus === 'hall_transition') {
-        const ht = msg.hall_transition;
-        breakIcon.textContent = '🚶';
-        breakTitle.textContent = 'Переход в зал';
-        breakSub.textContent = hall ? `Следуйте к залу: ${hall.name}` : 'Переход между залами';
-        if (ht && ht.map_image) {
-          breakMapImg.src = ht.map_image;
-          breakMapImg.style.display = 'block';
-        } else {
-          breakMapImg.style.display = 'none';
-        }
-        if (msg.break_remaining_seconds) {
-          startBreakCountdown(msg.break_remaining_seconds);
-        }
-      } else if (state.tourStatus === 'section_transition') {
-        breakIcon.textContent = '🚶';
-        breakTitle.textContent = 'Переход к разделу';
-        const secName = msg.current_section?.name || '';
-        breakSub.textContent = secName ? `Следуйте к разделу: ${secName}` : 'Переход между разделами';
-        // Показываем карту перехода из section_transition (от предыдущего раздела)
-        const secTr = msg.section_transition;
-        if (secTr && secTr.map_image) {
-          breakMapImg.src = secTr.map_image;
-          breakMapImg.style.display = 'block';
-        } else {
-          breakMapImg.style.display = 'none';
-        }
-        if (msg.break_remaining_seconds) {
-          startBreakCountdown(msg.break_remaining_seconds);
-        }
-      } else if (msg.is_auto_break) {
-        breakIcon.textContent = '☕';
-        breakTitle.textContent = 'Перерыв';
-        breakSub.textContent = 'Автоматический перерыв между разделами.';
-        breakMapImg.style.display = 'none';
-        if (msg.break_remaining_seconds) {
-          startBreakCountdown(msg.break_remaining_seconds);
-        }
-      } else if (msg.is_technical_stop) {
-        breakIcon.textContent = '🔧';
-        breakTitle.textContent = 'Техническая остановка';
-        breakSub.textContent = 'Тур временно приостановлен. Ожидайте продолжения.';
-        breakMapImg.style.display = 'none';
-        breakTimerEl.style.display = 'none';
-      } else {
-        breakIcon.textContent = '☕';
-        breakTitle.textContent = 'Перерыв';
-        breakSub.textContent = 'Тур временно приостановлен. Ожидайте продолжения.';
-        breakMapImg.style.display = 'none';
-        breakTimerEl.style.display = 'none';
-      }
-    } else {
-      breakOverlay.classList.remove('visible');
-      breakMapImg.style.display = 'none';
-      breakTimerEl.style.display = 'none';
-    }
-
-    // Section timer
-    if (msg.timer) {
-      startClientTimer(msg.timer.section_remaining_seconds, msg.timer.section_total_seconds);
-    }
-
-    // Total tour remaining (shown in WS bar)
-    if (msg.total_remaining_seconds != null) {
-      startTotalTimer(msg.total_remaining_seconds);
-    }
-
-    // If in_progress and we're on waiting screen → go to dashboard
-    if (['in_progress', 'on_break', 'hall_transition', 'section_transition'].includes(state.tourStatus) && document.getElementById('screen-waiting').classList.contains('active')) {
-      showScreen('dashboard');
-    }
-
-    // If finished → rating
-    if (state.tourStatus === 'finished') {
-      clearInterval(state.timerInterval);
-      clearInterval(state.totalTimerInterval);
-      showScreen('rating');
+    }else{
+      localStorage.removeItem('iccu_device_token');
     }
   }
-
-  function startClientTimer(remaining, total) {
-    clearInterval(state.timerInterval);
-    state.timerRemaining = remaining;
-    state.timerTotal = total || remaining;
-    updateTimerDisplay();
-    state.timerInterval = setInterval(() => {
-      if (state.tourStatus !== 'in_progress') return;
-      state.timerRemaining = Math.max(0, state.timerRemaining - 1);
-      updateTimerDisplay();
-    }, 1000);
-  }
-
-  function updateTimerDisplay() {
-    const r = state.timerRemaining;
-    const m = Math.floor(r / 60).toString().padStart(2, '0');
-    const s = (r % 60).toString().padStart(2, '0');
-    document.getElementById('tb-timer').textContent = `${m}:${s}`;
-
-    const pct = state.timerTotal > 0 ? (r / state.timerTotal) * 100 : 100;
-    document.getElementById('timer-fill').style.width = pct + '%';
-  }
-
-  function startTotalTimer(remainingSecs) {
-    clearInterval(state.totalTimerInterval);
-    state.totalRemaining = remainingSecs;
-    const el = document.getElementById('ws-total-time');
-    const wrap = document.getElementById('ws-total-timer');
-    wrap.style.display = 'block';
-    const update = () => {
-      const h = Math.floor(state.totalRemaining / 3600);
-      const m = Math.floor((state.totalRemaining % 3600) / 60).toString().padStart(2,'0');
-      const s = (state.totalRemaining % 60).toString().padStart(2,'0');
-      el.textContent = h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
-    };
-    update();
-    state.totalTimerInterval = setInterval(() => {
-      if (state.tourStatus !== 'in_progress') return;
-      state.totalRemaining = Math.max(0, state.totalRemaining - 1);
-      update();
-    }, 1000);
-  }
-
-  // ── Break countdown ────────────────────────────────────────
-  function startBreakCountdown(secs) {
-    const el = document.getElementById('break-timer');
-    el.style.display = 'block';
-    let remain = secs;
-    const update = () => {
-      const m = Math.floor(remain / 60).toString().padStart(2, '0');
-      const s = (remain % 60).toString().padStart(2, '0');
-      el.textContent = `${m}:${s}`;
-    };
-    update();
-    clearInterval(state.breakTimerInterval);
-    state.breakTimerInterval = setInterval(() => {
-      remain = Math.max(0, remain - 1);
-      update();
-      if (remain <= 0) clearInterval(state.breakTimerInterval);
-    }, 1000);
-  }
-
-  // ── Exhibits ──────────────────────────────────────────────
-  function renderExhibits(exhibits) {
-    const grid = document.getElementById('exhibits-grid');
-    if (!exhibits || !exhibits.length) {
-      grid.innerHTML = '<div class="no-exhibits">Экспонаты не найдены</div>';
-      return;
-    }
-    grid.innerHTML = exhibits.map((ex, i) => {
-      const thumb = ex.thumbnail
-        ? `<img class="ex-thumb" src="${ex.thumbnail}" alt="${ex.title}">`
-        : `<div class="ex-thumb-placeholder">🏺</div>`;
-      return `
-        <div class="exhibit-card" onclick="openExhibit(${JSON.stringify(ex).replace(/"/g,'&quot;')})">
-          ${thumb}
-          <div class="ex-body">
-            <div class="ex-title">${ex.title}</div>
-            <div class="ex-num">${i + 1} из ${exhibits.length}</div>
-          </div>
-        </div>`;
-    }).join('');
-  }
-
-  // ── Guide video playlist ───────────────────────────────────
-  function updateGuideVideos(videos) {
-    state.guideVideos = videos || [];
-    state.guideVideoIndex = 0;
-    const vid = document.getElementById('guide-video');
-    const placeholder = document.getElementById('guide-video-placeholder');
-
-    if (!videos || !videos.length) {
-      vid.style.display = 'none';
-      vid.src = '';
-      placeholder.style.display = 'flex';
-      document.getElementById('guide-panel-desc').textContent = 'Нет видео гида для этого раздела.';
-      return;
-    }
-
-    // Play first video
-    playGuideVideo(0);
-  }
-
-  function playGuideVideo(index) {
-    const videos = state.guideVideos;
-    if (!videos || index >= videos.length) return;
-    state.guideVideoIndex = index;
-
-    const gv = videos[index];
-    const vid = document.getElementById('guide-video');
-    const placeholder = document.getElementById('guide-video-placeholder');
-
-    vid.src = gv.video;
-    vid.style.display = 'block';
-    placeholder.style.display = 'none';
-    vid.load();
-    vid.play().catch(() => {});
-
-    // Show subtitles in guide panel desc
-    document.getElementById('guide-panel-desc').textContent = gv.subtitles || '';
-
-    // When video ends, play next one
-    vid.onended = () => {
-      if (state.guideVideoIndex + 1 < state.guideVideos.length) {
-        playGuideVideo(state.guideVideoIndex + 1);
-      }
-      // If last video — just stop, stay on last frame
-    };
-  }
-
-  function openExhibit(ex) {
-    document.getElementById('exhibit-modal-title').textContent = ex.title;
-    document.getElementById('exhibit-modal-desc').textContent = ex.description || '';
-    document.getElementById('tb-exhibit').textContent = ex.title;
-
-    const vid = document.getElementById('exhibit-video');
-    if (ex.video) {
-      vid.src = ex.video;
-      vid.style.display = 'block';
-      vid.load();
-      vid.play().catch(() => {});
-    } else {
-      vid.style.display = 'none';
-      vid.src = '';
-    }
-
-    document.getElementById('exhibit-modal').classList.add('open');
-  }
-
-  function closeExhibitModal() {
-    const vid = document.getElementById('exhibit-video');
-    vid.pause();
-    vid.src = '';
-    document.getElementById('exhibit-modal').classList.remove('open');
-  }
-
-  // ── Disconnect ────────────────────────────────────────────
-  async function disconnectAndBack() {
-    if (state.ws) { state.ws.close(); state.ws = null; }
-    // Notify server
-    if (state.deviceToken) {
-      try {
-        await fetch(`${API_BASE()}/tour/leave/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ device_token: state.deviceToken }),
-        });
-      } catch {}
-    }
-    state.sessionId = null;
-    connectLobby();
-    showScreen('specialist-select');
-  }
-
-  // ── Rating ────────────────────────────────────────────────
-  function setStar(val) {
-    state.selectedRating = val;
-    document.querySelectorAll('.star-btn').forEach(btn => {
-      btn.classList.toggle('active', parseInt(btn.dataset.val) <= val);
-    });
-  }
-
-  async function submitRating() {
-    if (!state.selectedRating) { showToast('Выберите оценку от 1 до 5 звёзд'); return; }
-    const comment = document.getElementById('rating-comment').value.trim();
-    try {
-      await fetch(`${API_BASE()}/tour/rating/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          device_token: state.deviceToken,
-          rating: state.selectedRating,
-          comment,
-        }),
-      });
-    } catch {}
-    showToast('Спасибо за оставленный отзыв, до новых встреч!');
-    setTimeout(() => showScreen('done'), 800);
-    startDoneCountdown();
-  }
-
-  function skipRating() {
-    showScreen('done');
-    startDoneCountdown();
-  }
-
-  // ── Done screen ───────────────────────────────────────────
-  function startDoneCountdown() {
-    let secs = 150; // 2:30
-    clearInterval(state.doneCountdown);
-    updateDoneCountdown(secs);
-    state.doneCountdown = setInterval(() => {
-      secs--;
-      updateDoneCountdown(secs);
-      if (secs <= 0) { clearInterval(state.doneCountdown); finishTour(); }
-    }, 1000);
-  }
-
-  function updateDoneCountdown(secs) {
-    const m = Math.floor(secs / 60).toString().padStart(2, '0');
-    const s = (secs % 60).toString().padStart(2, '0');
-    document.getElementById('done-countdown').textContent = `${m}:${s}`;
-  }
-
-  function finishTour() {
-    clearInterval(state.doneCountdown);
-    if (state.ws) { state.ws.close(); state.ws = null; }
-    // Reset state for next tourist
-    state.deviceToken = null;
-    state.touristId = null;
-    state.sessionId = null;
-    state.selectedGuide = null;
-    state.selectedRating = 0;
-    state.tourStatus = 'waiting';
-    clearInterval(state.timerInterval);
-    clearInterval(state.totalTimerInterval);
-    clearInterval(state.breakTimerInterval);
-    clearInterval(state.secTransInterval);
-    stopSessionPoll();
-    disconnectLobby();
-    localStorage.removeItem('deviceToken');
-    localStorage.removeItem('touristId');
-    setWsStatus('disconnected');
-    document.getElementById('ws-total-timer').style.display = 'none';
-    showScreen('welcome');
-  }
-
-  // ── Toast ─────────────────────────────────────────────────
-  function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 3000);
-  }
+})();
 </script>
 </body>
 </html>

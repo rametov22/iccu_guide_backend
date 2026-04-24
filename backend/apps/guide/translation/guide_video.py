@@ -7,4 +7,4 @@ __all__ = ("GuideVideoTranslationOptions",)
 
 @register(GuideVideo)
 class GuideVideoTranslationOptions(TranslationOptions):
-    fields = ("video", "title", "subtitles")
+    fields = ("video", "transition_video", "title", "subtitles")

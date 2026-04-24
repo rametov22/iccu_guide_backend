@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from exhibit.models import Hall
-from guide.models import Guide, GuideVideo
+from guide.models import Guide, GuideVideo, GuideHallVideo
 
 __all__ = ("MediaBundleView",)
 
@@ -62,6 +62,7 @@ class MediaBundleView(APIView):
                         "id": gv.id,
                         "guide_id": gv.guide_id,
                         "video": self._file_url(gv.video),
+                        "transition_video": self._file_url(gv.transition_video),
                     }
                     for gv in sec.guide_videos.all().order_by("order")
                 ]
@@ -75,11 +76,22 @@ class MediaBundleView(APIView):
                     "guide_videos": guide_videos_data,
                 })
 
+            # Видео гидов для перехода в этот зал
+            hall_guide_videos = [
+                {
+                    "id": ghv.id,
+                    "guide_id": ghv.guide_id,
+                    "video": self._file_url(ghv.video),
+                }
+                for ghv in GuideHallVideo.objects.filter(hall=hall)
+            ]
+
             halls_data.append({
                 "id": hall.id,
                 "name": hall.name,
                 "map_image": self._file_url(hall.map_image),
                 "transition_map_image": self._file_url(hall.transition_map_image),
+                "guide_videos": hall_guide_videos,
                 "sections": sections_data,
             })
 
@@ -89,6 +101,7 @@ class MediaBundleView(APIView):
                 "name": g.name,
                 "thumbnail": self._file_url(g.thumbnail),
                 "preview_video": self._file_url(g.preview_video),
+                "exhibits_video": self._file_url(g.exhibits_video),
             }
             for g in Guide.objects.filter(is_active=True).order_by("order", "name")
         ]

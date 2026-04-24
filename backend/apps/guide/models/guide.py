@@ -30,6 +30,14 @@ class Guide(models.Model):
         help_text=_("Короткое видео, показывается в списке гидов при выборе"),
     )
 
+    exhibits_video = models.FileField(
+        upload_to="guides/exhibits/",
+        blank=True,
+        null=True,
+        verbose_name=_("Видео для экспонатов"),
+        help_text=_("Одно на гида — играет во время auto_break при показе экспонатов"),
+    )
+
     order = models.PositiveIntegerField(
         default=0,
         verbose_name=_("Порядок"),

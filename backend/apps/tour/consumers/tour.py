@@ -109,7 +109,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         # Отправляем текущее состояние
         state = await self._get_session_state()
         if not self.is_specialist:
-            tourist_extra = await self._get_tourist_extras(state.get("current_section"))
+            tourist_extra = await self._get_tourist_extras(state.get("current_section"), state)
             state.update(tourist_extra)
             if state.get("current_section"):
                 state["current_section"] = {
@@ -280,8 +280,8 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                     else:
                         if status == TourSession.Status.ON_BREAK:
                             await self._do_advance_or_finish()
-                        elif status in (TourSession.Status.HALL_TRANSITION, TourSession.Status.SECTION_TRANSITION):
-                            await self._finish_transition()
+                        # Если адджаст времени перехода ушёл в 0 — просто ждём resume_tour,
+                        # не автопереходим на следующий раздел.
 
         elif action == "get_tour_info":
             info = await self._get_tour_info()
@@ -360,10 +360,19 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                 self._start_section_timer(duration)
 
     async def _transition_then_start(self, seconds):
-        """Wait for hall/section transition, then start the section timer."""
+        """Wait for hall/section transition timer to elapse.
+
+        После истечения времени перехода мы НЕ переходим к следующему разделу
+        автоматически — ждём команды resume_tour от специалиста.
+        Просто отсылаем финальный state (break_remaining = 0) и останавливаемся.
+        """
         try:
             await asyncio.sleep(seconds)
-            await self._finish_transition()
+            state = await self._get_session_state()
+            await self.channel_layer.group_send(
+                self.group_name,
+                {"type": "tour.info", **state},
+            )
         except asyncio.CancelledError:
             pass
 
@@ -454,7 +463,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
     async def tour_info(self, event):
         data = {k: v for k, v in event.items() if k != "type"}
         if not self.is_specialist:
-            tourist_extra = await self._get_tourist_extras(data.get("current_section"))
+            tourist_extra = await self._get_tourist_extras(data.get("current_section"), data)
             data.update(tourist_extra)
             # Турист не видит map_image в current_section — он получает её через section_transition
             if data.get("current_section"):
@@ -761,17 +770,37 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             return None
 
     @database_sync_to_async
-    def _get_tourist_extras(self, current_section):
+    def _get_tourist_extras(self, current_section, state=None):
         """Доп. данные для туриста: видео гида текущего раздела + экспонаты + переход."""
         self._activate_lang()
-        from guide.models import GuideVideo
+        from guide.models import Guide, GuideVideo, GuideHallVideo
         from exhibit.models import Exhibit, Section
 
-        result = {"guide_videos": [], "exhibits": [], "section_transition": None}
+        result = {
+            "guide_videos": [],
+            "exhibits": [],
+            "section_transition": None,
+            "exhibits_video": None,
+        }
 
         section_id = current_section.get("id") if current_section else None
         if not section_id:
             return result
+
+        # Видео гида для текущего раздела + данные о гиде
+        guide_id = None
+        guide = None
+        if self.tourist_session:
+            try:
+                ts = TouristSession.objects.select_related("guide").get(pk=self.tourist_session.pk)
+                guide_id = ts.guide_id
+                guide = ts.guide
+            except TouristSession.DoesNotExist:
+                pass
+
+        # Глобальное видео гида для экспонатов (показывается во время auto_break)
+        if guide and guide.exhibits_video:
+            result["exhibits_video"] = self._media_url(guide.exhibits_video)
 
         # Переход между разделами — берём предыдущий раздел и его карту/время
         # Не показываем для первого раздела зала (там hall_transition достаточно)
@@ -794,19 +823,32 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             and prev_sec.hall_id == current_sec.hall_id
             and prev_sec.transition_seconds > 0
         ):
+            # Видео гида для перехода — из GuideVideo.transition_video предыдущего раздела
+            transition_video_url = None
+            if guide_id:
+                prev_gv = (
+                    GuideVideo.objects.filter(guide_id=guide_id, section_id=prev_sec.id)
+                    .first()
+                )
+                if prev_gv and prev_gv.transition_video:
+                    transition_video_url = self._media_url(prev_gv.transition_video)
             result["section_transition"] = {
                 "from_section": str(current_sec.name),
                 "transition_seconds": prev_sec.transition_seconds,
                 "map_image": self._media_url(prev_sec.map_image),
+                "video": transition_video_url,
             }
 
-        # Видео гида для текущего раздела
-        guide_id = None
-        if self.tourist_session:
+        # Видео гида для перехода между залами (если state указывает на hall_transition)
+        if state and state.get("hall_transition") and guide_id and current_sec:
             try:
-                ts = TouristSession.objects.select_related("guide").get(pk=self.tourist_session.pk)
-                guide_id = ts.guide_id
-            except TouristSession.DoesNotExist:
+                ghv = GuideHallVideo.objects.get(guide_id=guide_id, hall_id=current_sec.hall_id)
+                if ghv.video:
+                    # Обогащаем hall_transition объект видео гида
+                    hall_trans = dict(state["hall_transition"])
+                    hall_trans["video"] = self._media_url(ghv.video)
+                    result["hall_transition"] = hall_trans
+            except GuideHallVideo.DoesNotExist:
                 pass
 
         if guide_id:

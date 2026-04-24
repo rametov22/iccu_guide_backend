@@ -52,6 +52,14 @@ class GuideVideo(models.Model):
         verbose_name=_("Видео"),
     )
 
+    transition_video = models.FileField(
+        upload_to="guides/transitions/",
+        blank=True,
+        null=True,
+        verbose_name=_("Видео перехода к след. разделу"),
+        help_text=_("Играет при section_transition после этого раздела"),
+    )
+
     subtitles = models.TextField(
         blank=True,
         default="",

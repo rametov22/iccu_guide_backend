@@ -9,915 +9,916 @@
   --bg: #0a0c10;
   --card: #111318;
   --card2: #181b23;
+  --card3: #1c2029;
   --border: #252833;
+  --border-light: #303545;
   --gold: #E8B84B;
   --gold-hover: #F5CC6A;
+  --gold-dim: rgba(232,184,75,.15);
   --red: #EF4444;
+  --red-dim: #3d1a1a;
   --green: #22C55E;
   --timer-green: #00E676;
+  --timer-orange: #FFB020;
+  --timer-red: #FF4B4B;
   --text: #F0F2F8;
   --muted: #6B7280;
+  --muted-2: #8A91A0;
   --radius: 12px;
   --radius-sm: 8px;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;font-family:-apple-system,'SF Pro Text','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);}
+html,body{height:100%;font-family:-apple-system,'SF Pro Text','Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
+button{font-family:inherit;}
+input{font-family:inherit;}
+
 .bg{position:fixed;inset:0;background:
   radial-gradient(ellipse at 20% 50%,rgba(30,40,80,.5) 0%,transparent 60%),
   radial-gradient(ellipse at 80% 20%,rgba(80,50,10,.35) 0%,transparent 50%),
   linear-gradient(135deg,#060810 0%,#0e1018 50%,#0a0c14 100%);z-index:0;}
-.screen{position:fixed;inset:0;z-index:10;display:none;overflow-y:auto;}
+
+.screen{position:fixed;inset:0;z-index:10;display:none;flex-direction:column;overflow:hidden;}
 .screen.active{display:flex;}
 
-/* ─── LOGIN ─── */
-#s-login{align-items:center;justify-content:center;}
-.login-card{
-  background:rgba(17,19,24,.97);border:1px solid var(--border);border-radius:20px;
-  padding:44px 38px;width:400px;text-align:center;backdrop-filter:blur(20px);
+/* ─── Top Bar ───────────────────────────── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 18px;background:var(--card);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;gap:10px;
 }
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.topbar-title{font-size:1.05rem;font-weight:600;}
+.topbar-right{display:flex;align-items:center;gap:8px;}
+
 .logo-emblem{
-  width:76px;height:76px;border-radius:50%;margin:0 auto 18px;
+  width:36px;height:36px;border-radius:50%;
   background:conic-gradient(from 0deg,#E8B84B,#C8941F,#E8B84B);
   display:flex;align-items:center;justify-content:center;
-  font-size:.72rem;font-weight:800;color:#0a0c10;letter-spacing:.1em;
-  box-shadow:0 0 36px rgba(232,184,75,.35);
+  font-size:.55rem;font-weight:800;color:#0a0c10;letter-spacing:.05em;
 }
-.login-title{font-size:1.25rem;font-weight:700;margin-bottom:6px;}
-.login-sub{font-size:.8rem;color:var(--muted);margin-bottom:28px;}
-.lang-row{display:flex;gap:10px;margin-bottom:24px;}
+.logo-emblem.lg{width:76px;height:76px;font-size:.72rem;box-shadow:0 0 36px rgba(232,184,75,.35);}
+
+/* ─── Chips / Buttons ───────────────────── */
+.chip{
+  padding:6px 12px;border:1px solid var(--border);border-radius:20px;
+  background:var(--card2);font-size:.8rem;color:var(--muted-2);
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+}
+.chip b{color:var(--text);font-weight:600;}
+.chip-time{border-color:rgba(255,255,255,.08);background:var(--card3);padding:6px 14px;}
+.chip-time b{color:var(--text);font-family:monospace;font-size:.85rem;}
+
+.btn{
+  padding:8px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:transparent;color:var(--text);font-size:.82rem;cursor:pointer;
+  transition:.15s;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+}
+.btn:hover{border-color:var(--border-light);background:var(--card2);}
+.btn-gold{background:var(--gold);color:#0a0c10;border-color:var(--gold);font-weight:700;}
+.btn-gold:hover{background:var(--gold-hover);border-color:var(--gold-hover);}
+.btn-gold:disabled{opacity:.45;cursor:not-allowed;}
+.btn-red{background:var(--red);color:#fff;border-color:var(--red);}
+.btn-red:hover{background:#ff5a5a;}
+.btn-ghost-gold{color:var(--gold);border-color:var(--gold);}
+.btn-ghost-gold:hover{background:rgba(232,184,75,.08);}
+.btn-ghost-red{color:var(--red);border-color:var(--red);}
+.btn-ghost-red:hover{background:rgba(239,68,68,.08);}
+.btn-icon{width:36px;height:36px;padding:0;}
+.btn-big{padding:14px 20px;font-size:.95rem;width:100%;}
+
+/* ─── Login ─────────────────────────────── */
+#s-login{align-items:center;justify-content:center;display:none;}
+#s-login.active{display:flex;}
+.login-card{
+  background:rgba(17,19,24,.97);border:1px solid var(--border);border-radius:20px;
+  padding:44px 38px;width:420px;text-align:center;backdrop-filter:blur(20px);z-index:11;
+}
+.login-title{font-size:1.25rem;font-weight:700;margin:20px 0 28px;}
+.lang-row{display:flex;gap:10px;margin-bottom:20px;}
 .lang-btn{
-  flex:1;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  flex:1;padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);
   background:var(--card2);color:var(--text);cursor:pointer;font-size:.85rem;
-  display:flex;align-items:center;justify-content:center;gap:7px;transition:.15s;
+  display:flex;align-items:center;justify-content:center;gap:8px;transition:.15s;
 }
 .lang-btn:hover,.lang-btn.sel{border-color:var(--gold);color:var(--gold);background:rgba(232,184,75,.08);}
+.lang-label{font-size:.78rem;color:var(--muted);text-align:left;margin-bottom:8px;}
 .field{margin-bottom:14px;text-align:left;}
 .field label{display:block;font-size:.78rem;color:var(--muted);margin-bottom:6px;}
 .field input{
-  width:100%;padding:12px 14px;background:#0d0f14;
+  width:100%;padding:12px 14px;background:var(--card2);
   border:1px solid var(--border);border-radius:var(--radius-sm);
   color:var(--text);font-size:.9rem;transition:.15s;
 }
 .field input:focus{outline:none;border-color:var(--gold);}
-.btn-gold{
-  width:100%;padding:14px;background:var(--gold);border:none;border-radius:var(--radius-sm);
-  color:#0a0c10;font-size:.95rem;font-weight:700;cursor:pointer;transition:.15s;
-}
-.btn-gold:hover{background:var(--gold-hover);}
-.btn-gold:disabled{opacity:.45;cursor:not-allowed;}
 
-/* ─── LOBBY ─── */
-#s-lobby{flex-direction:column;}
-.lobby-topbar{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:14px 24px;border-bottom:1px solid var(--border);
-  background:rgba(17,19,24,.93);backdrop-filter:blur(10px);
-  position:sticky;top:0;z-index:20;
-}
-.topbar-logo{display:flex;align-items:center;gap:10px;font-weight:600;}
-.topbar-logo .dot{width:34px;height:34px;border-radius:50%;background:conic-gradient(from 0deg,#E8B84B,#C8941F,#E8B84B);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;color:#0a0c10;}
-.btn-sm{
-  padding:8px 16px;border:1px solid var(--border);border-radius:var(--radius-sm);
-  background:transparent;color:var(--text);font-size:.82rem;cursor:pointer;transition:.15s;
-}
-.btn-sm:hover{border-color:var(--gold);color:var(--gold);}
-.btn-sm-gold{
-  padding:8px 16px;border:1px solid var(--gold);border-radius:var(--radius-sm);
-  background:transparent;color:var(--gold);font-size:.82rem;cursor:pointer;transition:.15s;
-  display:inline-flex;align-items:center;gap:6px;
-}
-.btn-sm-gold:hover{background:rgba(232,184,75,.1);}
-.lobby-body{flex:1;display:flex;flex-direction:column;align-items:center;padding:40px 24px;max-width:860px;margin:0 auto;width:100%;}
-.lobby-count-title{font-size:1.9rem;font-weight:700;margin-bottom:8px;}
-.lobby-hint{font-size:.82rem;color:var(--muted);margin-bottom:32px;text-align:center;line-height:1.6;}
+/* ─── Lobby ─────────────────────────────── */
+.lobby-body{flex:1;display:flex;flex-direction:column;padding:30px 24px;max-width:900px;margin:0 auto;width:100%;overflow-y:auto;}
+.lobby-count-title{font-size:1.75rem;font-weight:700;margin-bottom:6px;text-align:center;}
+.lobby-hint{font-size:.82rem;color:var(--muted);margin-bottom:28px;text-align:center;line-height:1.6;}
+.tourist-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:18px;}
+.tourist-card-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px 10px;}
+.tourist-card-title{font-size:.95rem;font-weight:600;color:var(--muted-2);}
 .tourist-table{width:100%;border-collapse:collapse;}
-.tourist-table th{text-align:left;padding:10px 14px;font-size:.73rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);}
-.tourist-table td{padding:12px 14px;font-size:.84rem;border-bottom:1px solid rgba(37,40,51,.5);}
+.tourist-table th{text-align:left;padding:10px 18px;font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);font-weight:500;}
+.tourist-table td{padding:12px 18px;font-size:.85rem;border-bottom:1px solid rgba(37,40,51,.5);}
 .tourist-table tbody tr:last-child td{border-bottom:none;}
-.tourist-table tbody tr:hover td{background:rgba(255,255,255,.018);}
-.btn-del{background:none;border:none;cursor:pointer;color:var(--muted);padding:4px 6px;border-radius:4px;font-size:1rem;transition:.15s;}
+.tourist-table tbody tr:hover td{background:rgba(255,255,255,.02);}
+.btn-del{background:none;border:none;cursor:pointer;color:var(--muted);padding:4px 8px;border-radius:4px;font-size:1rem;transition:.15s;}
 .btn-del:hover{color:var(--red);}
-.empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
-.empty-state p{font-size:.88rem;margin-bottom:18px;line-height:1.6;}
-.lobby-footer{width:100%;max-width:860px;margin:0 auto;padding:16px 24px 32px;}
-.btn-big{width:100%;padding:16px;border:none;border-radius:var(--radius-sm);font-size:1rem;font-weight:700;cursor:pointer;transition:.15s;}
-.btn-big-gold{background:var(--gold);color:#0a0c10;}
-.btn-big-gold:hover{background:var(--gold-hover);}
+.empty-lobby{text-align:center;padding:60px 20px;color:var(--muted);}
+.empty-lobby p{font-size:.88rem;margin-bottom:18px;line-height:1.6;}
 
-/* ─── ADD TOURIST ─── */
-#s-add-tourist{align-items:center;justify-content:center;}
-.add-card{background:rgba(17,19,24,.97);border:1px solid var(--border);border-radius:20px;padding:40px 36px;width:400px;text-align:center;}
-.btn-back{background:none;border:none;color:var(--muted);font-size:.83rem;cursor:pointer;margin-bottom:20px;padding:4px 0;display:block;}
-.btn-back:hover{color:var(--text);}
-
-/* ─── DASHBOARD ─── */
-#s-dashboard{flex-direction:column;}
-.dash-bar{
-  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-  padding:10px 18px;background:rgba(17,19,24,.95);
-  border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);
+/* ─── Dashboard ─────────────────────────── */
+.dash-infobar{
+  display:flex;gap:10px;padding:10px 18px;
+  background:var(--card);border-bottom:1px solid var(--border);
 }
-.dash-bar-title{font-size:.95rem;font-weight:600;margin-right:4px;}
-.chip{padding:5px 12px;background:var(--card2);border:1px solid var(--border);border-radius:20px;font-size:.78rem;color:var(--muted);white-space:nowrap;}
-.chip b{color:var(--text);font-weight:500;}
-.chip-time{border-color:rgba(232,184,75,.3);}
-.chip-time b{color:var(--gold);font-family:monospace;font-size:.85rem;}
-.bar-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.info-pill{
+  background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:10px 14px;flex:1;display:flex;align-items:center;gap:10px;min-width:0;
+}
+.info-pill-label{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;flex-shrink:0;}
+.info-pill-value{font-size:.82rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+.info-pill.highlighted{background:var(--card3);border-color:rgba(232,184,75,.2);}
+.info-pill.highlighted .info-pill-value{color:var(--text);font-family:monospace;font-size:.88rem;}
 
-.dash-layout{flex:1;display:grid;grid-template-columns:1fr 320px;overflow:hidden;height:calc(100vh - 50px);}
+.dash-layout{flex:1;display:grid;grid-template-columns:1.35fr 1fr;overflow:hidden;}
+.dash-left,.dash-right{display:flex;flex-direction:column;overflow:hidden;padding:14px;}
+.dash-left{border-right:1px solid var(--border);}
+.panel-title{font-size:.95rem;font-weight:600;margin-bottom:10px;padding:0 4px;}
 
-/* Left */
-.dash-left{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border);}
-.stats-strip{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--border);flex-shrink:0;}
-.stat-cell{padding:14px 18px;display:flex;align-items:center;gap:12px;border-right:1px solid var(--border);}
-.stat-cell:last-child{border-right:none;}
-.stat-icon{font-size:1.3rem;opacity:.55;}
-.stat-num{font-size:1.55rem;font-weight:700;line-height:1;}
-.stat-lbl{font-size:.7rem;color:var(--muted);margin-top:2px;}
-.route-header{padding:10px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
-.route-header h3{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
-.route-scroll{flex:1;overflow-y:auto;}
-.route-item{display:flex;align-items:flex-start;gap:12px;padding:9px 18px;border-left:3px solid transparent;transition:.1s;}
-.route-item.r-active{background:rgba(232,184,75,.05);border-left-color:var(--gold);}
-.route-item.r-done{opacity:.35;}
-.r-num{width:20px;height:20px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:600;flex-shrink:0;margin-top:3px;color:var(--muted);}
+.route-list{flex:1;overflow-y:auto;background:var(--card);border-radius:var(--radius);}
+.route-item{
+  display:flex;align-items:center;gap:12px;padding:12px 14px;
+  border-bottom:1px solid var(--border);cursor:default;transition:.12s;
+}
+.route-item:last-child{border-bottom:none;}
+.route-item.r-active{background:rgba(232,184,75,.08);border-left:3px solid var(--gold);padding-left:11px;}
+.route-item.r-done{opacity:.45;}
+.r-num{
+  width:22px;height:22px;border-radius:6px;border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:.7rem;
+  color:var(--muted);font-weight:600;flex-shrink:0;background:var(--card2);
+}
 .route-item.r-active .r-num{background:var(--gold);border-color:var(--gold);color:#0a0c10;}
-.route-item.r-done .r-num{background:var(--border);}
+.route-item.r-done .r-num{background:var(--border);border-color:var(--border);}
 .r-info{flex:1;min-width:0;}
-.r-hall{font-size:.68rem;color:var(--muted);}
-.r-name{font-size:.83rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.r-dur{font-size:.72rem;color:var(--muted);font-family:monospace;flex-shrink:0;margin-top:5px;}
+.r-hall{font-size:.68rem;color:var(--muted);margin-bottom:2px;}
+.r-name{font-size:.82rem;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.r-dur{font-size:.72rem;color:var(--muted-2);font-family:monospace;flex-shrink:0;}
 
-/* Right */
-.dash-right{display:flex;flex-direction:column;overflow:hidden;}
-.exhibits-block{flex:1;display:flex;flex-direction:column;border-bottom:1px solid var(--border);min-height:0;}
-.exhibits-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;}
-.exhibits-header h4{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;}
-.exhibits-list{flex:1;overflow-y:auto;padding:8px;}
-.ex-item{display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:6px;}
-.ex-thumb{width:40px;height:40px;border-radius:6px;background:var(--border);flex-shrink:0;object-fit:cover;}
-.ex-thumb-placeholder{width:40px;height:40px;border-radius:6px;background:var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.9rem;}
-.ex-title{font-size:.83rem;font-weight:500;line-height:1.3;}
-.ex-desc{font-size:.72rem;color:var(--muted);margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.ex-num{font-size:.68rem;color:var(--muted);flex-shrink:0;font-family:monospace;}
-.ex-empty{padding:40px 20px;text-align:center;color:var(--muted);font-size:.82rem;}
-.timer-block{padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0;}
-.timer-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
-.timer-row span{font-size:.75rem;color:var(--muted);}
-.timer-big{font-size:2.5rem;font-weight:700;font-family:'SF Mono','Fira Code',monospace;font-variant-numeric:tabular-nums;color:var(--timer-green);text-shadow:0 0 18px rgba(0,230,118,.28);}
-.timer-bar{height:4px;background:var(--border);border-radius:2px;margin-top:8px;}
-.timer-fill{height:100%;background:var(--gold);border-radius:2px;transition:width .6s linear;}
+.nav-panel{
+  flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;
+  background:var(--card);border-radius:var(--radius);padding:14px;gap:10px;min-height:0;
+}
+.nav-map{width:100%;height:100%;object-fit:contain;border-radius:var(--radius-sm);max-height:calc(100vh - 400px);}
+.nav-placeholder{color:var(--muted);font-size:.85rem;}
 
-.ctrl-block{padding:14px 16px;display:flex;flex-direction:column;gap:8px;flex-shrink:0;}
-.btn-ctrl{width:100%;padding:12px;border-radius:var(--radius-sm);font-size:.86rem;font-weight:600;cursor:pointer;border:none;transition:.15s;}
-.btn-start{background:var(--gold);color:#0a0c10;}
-.btn-start:hover{background:var(--gold-hover);}
-.btn-pause{background:#422006;color:#FBBF24;}
-.btn-pause:hover{background:#5c300a;}
-.btn-resume{background:#14532D;color:#4ADE80;}
-.btn-resume:hover{background:#166534;}
-.btn-stop{background:#3f0000;color:#F87171;}
-.btn-stop:hover{background:#5a0000;}
-.btn-nav{background:rgba(99,102,241,.15);color:#818CF8;border:1px solid rgba(99,102,241,.3);}
-.btn-nav:hover{background:rgba(99,102,241,.28);}
-.ctrl-row2{display:flex;gap:8px;}
-.ctrl-row2 .btn-ctrl{flex:1;}
-.break-notice{text-align:center;padding:8px;color:#FBBF24;font-size:.82rem;font-weight:500;background:rgba(66,32,6,.4);border-radius:var(--radius-sm);}
-.break-timer{text-align:center;font-size:1.8rem;font-weight:700;font-family:'SF Mono','Fira Code',monospace;color:#FBBF24;margin:4px 0;}
-.btn-adjust-row{display:flex;gap:6px;align-items:center;justify-content:center;margin-top:4px;}
-.btn-adj{width:36px;height:36px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;}
-.btn-adj:hover{border-color:var(--gold);color:var(--gold);}
-.adj-label{font-size:.72rem;color:var(--muted);min-width:80px;text-align:center;}
-.btn-tech{background:#1e1b4b;color:#A78BFA;border:1px solid rgba(139,92,246,.3);}
-.btn-tech:hover{background:#2e2860;}
-.finished-notice{text-align:center;padding:14px;color:var(--muted);font-size:.88rem;}
+/* Action / timer bar */
+.action-bar{
+  padding:14px 18px;background:var(--card);border-top:1px solid var(--border);flex-shrink:0;
+  display:flex;align-items:center;gap:14px;
+}
+.timer-label{font-size:.82rem;color:var(--muted-2);flex-shrink:0;}
+.timer-value{
+  font-family:'SF Mono',monospace;font-size:2rem;font-weight:700;flex:1;text-align:center;
+}
+.timer-value.green{color:var(--timer-green);}
+.timer-value.orange{color:var(--timer-orange);}
+.timer-value.red{color:var(--timer-red);}
+.timer-adjust{display:flex;gap:8px;flex-shrink:0;}
+.timer-adjust .btn-icon{font-size:1.2rem;border-color:var(--border-light);}
 
-/* ─── TOUR INFO ─── */
-#s-tour-info{flex-direction:column;}
-.ti-topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;border-bottom:1px solid var(--border);background:rgba(17,19,24,.93);backdrop-filter:blur(10px);position:sticky;top:0;z-index:20;}
-.ti-body{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:28px 28px;max-width:1100px;margin:0 auto;width:100%;}
-.ti-stats{display:flex;flex-direction:column;gap:14px;}
-.ti-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;}
-.ti-card-label{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
-.ti-card-value{font-size:1.5rem;font-weight:700;line-height:1.2;}
-.ti-card-sub{font-size:.78rem;color:var(--muted);margin-top:4px;}
-.ti-stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
-.ti-stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;}
-.ti-stat .n{font-size:1.8rem;font-weight:700;color:var(--gold);}
-.ti-stat .l{font-size:.72rem;color:var(--muted);margin-top:4px;}
-.ti-route{display:flex;flex-direction:column;gap:0;}
-.ti-route-header{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:0 0 10px;}
-.ti-route-scroll{flex:1;overflow-y:auto;max-height:calc(100vh - 280px);background:var(--card);border:1px solid var(--border);border-radius:var(--radius);}
-.ti-footer{padding:16px 28px;max-width:1100px;margin:0 auto;width:100%;}
+.action-full-gold{
+  padding:14px;background:var(--gold);color:#0a0c10;font-weight:700;font-size:1rem;
+  border:none;border-radius:var(--radius-sm);width:100%;cursor:pointer;
+}
+.action-full-gold:hover{background:var(--gold-hover);}
 
-/* Tourists panel */
-.tp-overlay{position:fixed;inset:0;z-index:60;display:none;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);}
-.tp-overlay.open{display:flex;align-items:stretch;justify-content:flex-end;}
-.tp-inner{width:340px;background:var(--card);border-left:1px solid var(--border);display:flex;flex-direction:column;}
-.tp-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
-.tp-head h3{font-size:.9rem;font-weight:600;}
-.btn-x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem;line-height:1;padding:2px 4px;}
-.btn-x:hover{color:var(--text);}
-.tp-body{flex:1;overflow-y:auto;padding:10px;}
-.tp-row{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:7px;}
-.tp-row .n{font-weight:600;font-size:.88rem;}
-.tp-row .tk{font-size:.7rem;color:var(--muted);font-family:monospace;margin-top:2px;}
+.tech-stop-bar{
+  background:var(--red-dim);border-top:1px solid var(--red);
+  padding:10px 18px;color:#fff;text-align:center;font-size:.82rem;font-weight:500;
+}
 
-/* Status badge */
-.s-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:.7rem;font-weight:600;}
-.sb-waiting{background:rgba(59,130,246,.12);color:#60A5FA;border:1px solid rgba(59,130,246,.25);}
-.sb-in_progress{background:rgba(34,197,94,.12);color:#4ADE80;border:1px solid rgba(34,197,94,.25);}
-.sb-on_break{background:rgba(245,158,11,.12);color:#FBBF24;border:1px solid rgba(245,158,11,.25);}
-.sb-hall_transition{background:rgba(139,92,246,.12);color:#A78BFA;border:1px solid rgba(139,92,246,.25);}
-.sb-section_transition{background:rgba(99,102,241,.12);color:#818CF8;border:1px solid rgba(99,102,241,.25);}
-.sb-finished{background:rgba(168,85,247,.12);color:#C084FC;border:1px solid rgba(168,85,247,.25);}
+/* ─── Full-screen pages ────────────────── */
+.fullpage{flex:1;overflow-y:auto;padding:20px 24px;max-width:1100px;margin:0 auto;width:100%;}
+.fullpage h2{font-size:1.1rem;font-weight:600;margin-bottom:14px;}
+.hall-divider{
+  font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;
+  padding:16px 14px 6px;display:flex;justify-content:space-between;align-items:center;
+}
 
-/* WS dot */
-.ws-dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0;}
-.ws-ok{background:var(--green);}
-.ws-no{background:var(--red);}
-.ws-wait{background:var(--gold);animation:blink .8s infinite;}
-@keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
+/* ─── Modal ─────────────────────────────── */
+.modal-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+.modal-bg.active{display:flex;}
+.modal{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:24px;width:100%;max-width:420px;position:relative;
+}
+.modal-title{font-size:1.05rem;font-weight:600;margin-bottom:6px;}
+.modal-subtitle{font-size:.82rem;color:var(--muted);margin-bottom:18px;line-height:1.5;}
+.modal-close{
+  position:absolute;top:18px;right:18px;background:none;border:none;
+  color:var(--muted);font-size:1.1rem;cursor:pointer;width:28px;height:28px;
+  border-radius:6px;display:flex;align-items:center;justify-content:center;
+}
+.modal-close:hover{background:var(--card2);color:var(--text);}
+.modal-section{margin-bottom:18px;}
+.modal-section h4{font-size:.82rem;font-weight:500;color:var(--muted-2);margin-bottom:8px;}
+.modal-section:last-child{margin-bottom:0;}
 
-/* Toasts */
-.toasts{position:fixed;bottom:22px;right:22px;z-index:999;display:flex;flex-direction:column;gap:7px;pointer-events:none;}
-.toast{padding:11px 16px;border-radius:var(--radius-sm);font-size:.83rem;font-weight:500;opacity:0;transform:translateX(16px);transition:all .22s;max-width:300px;}
-.toast.in{opacity:1;transform:translateX(0);}
-.t-success{background:#166534;border:1px solid #16A34A;color:#4ADE80;}
-.t-error{background:#7f1d1d;border:1px solid #DC2626;color:#FCA5A5;}
-.t-info{background:#1e3a5f;border:1px solid #3B82F6;color:#93C5FD;}
+/* ─── Toasts ────────────────────────────── */
+#toasts{position:fixed;bottom:24px;right:24px;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:360px;}
+.toast{
+  padding:10px 14px;border-radius:var(--radius-sm);font-size:.82rem;line-height:1.4;
+  animation:slide-in .25s ease;box-shadow:0 6px 16px rgba(0,0,0,.4);
+}
+.toast-success{background:#065f46;color:#d1fae5;}
+.toast-error{background:#7f1d1d;color:#fee2e2;}
+.toast-info{background:var(--card3);color:var(--text);border:1px solid var(--border-light);}
+@keyframes slide-in{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 
-::-webkit-scrollbar{width:4px;}
-::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.ws-dot{
+  width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;
+}
+.ws-dot.ok{background:var(--green);}
+.ws-dot.wait{background:#f59e0b;}
+.ws-dot.no{background:var(--red);}
+
+.status-badge{
+  display:inline-block;padding:3px 8px;border-radius:8px;font-size:.7rem;font-weight:500;
+  text-transform:uppercase;letter-spacing:.05em;
+}
+.status-waiting{background:rgba(245,158,11,.2);color:#f59e0b;}
+.status-in_progress{background:rgba(34,197,94,.2);color:var(--green);}
+.status-on_break{background:rgba(232,184,75,.2);color:var(--gold);}
+.status-section_transition,.status-hall_transition{background:rgba(110,110,255,.2);color:#8b8bff;}
+.status-finished{background:rgba(239,68,68,.2);color:var(--red);}
 </style>
 </head>
 <body>
 <div class="bg"></div>
-<div class="toasts" id="toasts"></div>
 
-<!-- ═══ LOGIN ═══ -->
+<!-- ── LOGIN ─────────────────────────────────── -->
 <div id="s-login" class="screen active">
   <div class="login-card">
-    <div class="logo-emblem">ICCU</div>
+    <div class="logo-emblem lg">ICCU</div>
     <div class="login-title">Центр Исламской Цивилизации</div>
-    <div class="login-sub">Панель управления специалиста</div>
 
+    <div class="lang-label">Выберите язык</div>
     <div class="lang-row">
+      <button class="lang-btn" onclick="setLang(this,'uz')">🇺🇿 Узбекский</button>
       <button class="lang-btn sel" onclick="setLang(this,'ru')">🇷🇺 Русский</button>
       <button class="lang-btn" onclick="setLang(this,'en')">🇬🇧 English</button>
-      <button class="lang-btn" onclick="setLang(this,'uz')">🇺🇿 O'zbek</button>
     </div>
 
-    <div class="field"><label>Логин</label>
-      <input id="in-user" placeholder="Введите логин" autocomplete="username" onkeydown="if(e.key==='Enter')doLogin()" /></div>
-    <div class="field"><label>Пароль</label>
-      <input id="in-pass" type="password" placeholder="Введите пароль" autocomplete="current-password" /></div>
-    <button class="btn-gold" id="btn-login" onclick="doLogin()">Войти</button>
+    <div class="field">
+      <label>Логин</label>
+      <input id="in-user" placeholder="Введите логин" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <div class="field">
+      <label>Пароль</label>
+      <input id="in-pass" type="password" placeholder="Введите пароль" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button id="btn-login" class="action-full-gold" onclick="doLogin()">Войти</button>
   </div>
 </div>
 
-<!-- ═══ LOBBY ═══ -->
-<div id="s-lobby" class="screen" style="flex-direction:column">
-  <div class="lobby-topbar">
-    <button class="btn-sm" onclick="doLogout()">← Выйти</button>
-    <div class="topbar-logo">
-      <div class="dot">ICCU</div>
-      <span>Центр Исламской Цивилизации</span>
+<!-- ── LOBBY ─────────────────────────────────── -->
+<div id="s-lobby" class="screen">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="btn btn-ghost-red" onclick="doLogout()">↩ Выйти</button>
     </div>
-    <button class="btn-sm-gold" onclick="go('s-add-tourist')">+ Добавить пользователя</button>
+    <div class="logo-emblem">ICCU</div>
+    <div class="topbar-right">
+      <button id="btn-start-tour" class="btn btn-gold" onclick="startTour()">Начать тур →</button>
+    </div>
   </div>
 
   <div class="lobby-body">
-    <div class="lobby-count-title">Подключённые пользователи: <span id="lob-cnt">0</span></div>
+    <div class="lobby-count-title">Подключенные пользователи: <span id="lobby-count">0</span></div>
     <div class="lobby-hint">Здесь будут отображаться пользователи,<br>ожидайте подключения всей группы перед стартом</div>
 
-    <div style="width:100%" id="lob-table-wrap">
-      <table class="tourist-table" id="lob-table" style="display:none">
-        <thead><tr><th>№</th><th>ID</th><th>Устройство</th><th>IP</th><th>Присоединился</th><th></th></tr></thead>
-        <tbody id="lob-tbody"></tbody>
+    <div class="tourist-card">
+      <div class="tourist-card-header">
+        <div class="tourist-card-title">Участники</div>
+        <button class="btn btn-ghost-gold" onclick="openAddUser()">+ Добавить</button>
+      </div>
+      <table class="tourist-table">
+        <thead>
+          <tr><th style="width:60px">Номер</th><th>Устройство</th><th>ID номер</th><th style="width:50px"></th></tr>
+        </thead>
+        <tbody id="lobby-tbody">
+          <tr><td colspan="4" class="empty-lobby"><p>Пользователей не обнаружено, добавьте их вручную или ожидайте подключения</p></td></tr>
+        </tbody>
       </table>
-      <div class="empty-state" id="lob-empty">
-        <p>Пользователи не обнаружены,<br>ожидайте подключения или добавьте вручную</p>
-        <button class="btn-sm-gold" onclick="go('s-add-tourist')">+ Добавить пользователей</button>
-      </div>
     </div>
-  </div>
-
-  <div class="lobby-footer">
-    <button class="btn-big btn-big-gold" onclick="enterTourInfo()">Продолжить →</button>
   </div>
 </div>
 
-<!-- ═══ ADD TOURIST ═══ -->
-<div id="s-add-tourist" class="screen" style="align-items:center;justify-content:center">
-  <div class="add-card">
-    <button class="btn-back" onclick="go('s-lobby')">← Назад</button>
-    <div class="logo-emblem" style="width:58px;height:58px;font-size:.65rem">ICCU</div>
-    <div style="font-size:1.2rem;font-weight:700;margin:14px 0 6px">Добавление пользователя</div>
-    <div style="font-size:.8rem;color:var(--muted);margin-bottom:24px">Введите номер устройства пользователя</div>
-    <div class="field" style="text-align:left"><label>Номер устройства</label>
-      <input id="in-token" type="number" min="1" max="600" placeholder="Номер устройства (1-600)" /></div>
-    <button class="btn-gold" onclick="doAddTourist()">Добавить</button>
-  </div>
-</div>
-
-<!-- ═══ TOUR INFO ═══ -->
-<div id="s-tour-info" class="screen" style="flex-direction:column">
-  <div class="ti-topbar">
-    <button class="btn-sm" onclick="go('s-lobby')">← Назад</button>
-    <div class="topbar-logo"><div class="dot">ICCU</div><span>Информация о туре</span></div>
-    <span id="ti-wsdot" class="ws-dot ws-no"></span>
-  </div>
-  <div class="ti-body">
-    <!-- LEFT: stats + hall/section -->
-    <div class="ti-stats">
-      <div class="ti-card">
-        <div class="ti-card-label">Первый зал</div>
-        <div class="ti-card-value" id="ti-hall">—</div>
-      </div>
-      <div class="ti-card">
-        <div class="ti-card-label">Первый раздел</div>
-        <div class="ti-card-value" id="ti-section">—</div>
-        <div class="ti-card-sub" id="ti-section-dur"></div>
-      </div>
-      <div class="ti-stats-row">
-        <div class="ti-stat"><div class="n" id="ti-cnt">0</div><div class="l">Участников</div></div>
-        <div class="ti-stat"><div class="n" id="ti-seccnt">—</div><div class="l">Разделов</div></div>
-        <div class="ti-stat"><div class="n" id="ti-totaltime" style="font-size:1.1rem">—</div><div class="l">Общее время</div></div>
-      </div>
+<!-- ── DASHBOARD ─────────────────────────────── -->
+<div id="s-dashboard" class="screen">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title">Панель управления</div>
+      <span id="ws-indicator"><span class="ws-dot no"></span><small id="ws-status-text" style="color:var(--muted);font-size:.75rem">offline</small></span>
+      <span id="tour-status-badge"></span>
     </div>
-    <!-- RIGHT: hall route -->
-    <div class="ti-route">
-      <div class="ti-route-header">Маршрут текущего зала</div>
-      <div class="ti-route-scroll" id="ti-route-list">
-        <div style="padding:32px;text-align:center;color:var(--muted);font-size:.82rem">Загрузка...</div>
-      </div>
+    <div class="topbar-right">
+      <button class="btn" onclick="go('s-route')" title="Маршрут"><span id="st-sections-chip"><span>🗺 Разделов</span> <b id="st-sections">—</b></span></button>
+      <button class="btn" onclick="go('s-users')" title="Участники"><span>👤 Участников</span> <b id="st-tourists">0</b></button>
+      <button class="btn btn-icon" onclick="openAdmin()" title="Админ">⚙</button>
+      <button class="btn btn-ghost-red" onclick="doLogout()">↩</button>
     </div>
   </div>
-  <div class="ti-footer">
-    <button class="btn-big btn-big-gold" onclick="doStartTour()">▶ Начать тур</button>
-  </div>
-</div>
 
-<!-- ═══ DASHBOARD ═══ -->
-<div id="s-dashboard" class="screen" style="flex-direction:column">
-  <div class="dash-bar">
-    <div class="dash-bar-title">Панель управления</div>
-    <span id="dh-badge" class="s-badge sb-waiting">Ожидание</span>
-    <span id="dh-wsdot" class="ws-dot ws-no"></span>
-    <div class="chip">Зал: <b id="dh-hall">—</b></div>
-    <div class="chip">Раздел: <b id="dh-sec">—</b></div>
-    <div class="chip chip-time">Время тура: <b id="dh-tourtime">00:00:00</b></div>
-    <div class="bar-right">
-      <button class="btn-sm" onclick="toggleTP()" title="Участники">👥 <span id="dh-cnt">0</span></button>
-      <button class="btn-sm" onclick="go('s-lobby')">← Лобби</button>
+  <div class="dash-infobar">
+    <div class="info-pill">
+      <div class="info-pill-label">Зал</div>
+      <div class="info-pill-value" id="dh-hall">—</div>
+    </div>
+    <div class="info-pill">
+      <div class="info-pill-label">Раздел</div>
+      <div class="info-pill-value" id="dh-section">—</div>
+    </div>
+    <div class="info-pill highlighted">
+      <div class="info-pill-label">Время тура</div>
+      <div class="info-pill-value" id="dh-tour-time">00:00:00 / 00:00:00</div>
     </div>
   </div>
 
   <div class="dash-layout">
-    <!-- LEFT -->
     <div class="dash-left">
-      <div class="stats-strip">
-        <div class="stat-cell"><div class="stat-icon">👤</div><div><div class="stat-num" id="st-tourists">0</div><div class="stat-lbl">Участников</div></div></div>
-        <div class="stat-cell"><div class="stat-icon">📋</div><div><div class="stat-num" id="st-sections">—</div><div class="stat-lbl">Разделов</div></div></div>
-        <div class="stat-cell"><div class="stat-icon">⏱</div><div><div class="stat-num" id="st-totaltime">—</div><div class="stat-lbl">Общее время</div></div></div>
-      </div>
-      <div class="route-header">
-        <h3>Маршрут тура</h3>
-        <span style="font-size:.72rem;color:var(--muted)" id="route-dur"></span>
-      </div>
-      <div class="route-scroll" id="route-list">
-        <div style="padding:32px;text-align:center;color:var(--muted);font-size:.82rem">Загрузка маршрута...</div>
-      </div>
+      <div class="panel-title">Маршрут тура (текущий зал) <span id="dh-hall-total" style="color:var(--muted);font-weight:normal;font-size:.78rem;margin-left:6px"></span></div>
+      <div class="route-list" id="route-list"></div>
     </div>
-
-    <!-- RIGHT -->
     <div class="dash-right">
-      <div class="exhibits-block">
-        <div class="exhibits-header">
-          <h4>Экспонаты раздела</h4>
-          <span id="ex-count" style="font-size:.72rem;color:var(--muted)"></span>
-        </div>
-        <div class="exhibits-list" id="exhibits-list">
-          <div class="ex-empty">Тур ещё не начат</div>
-        </div>
+      <div class="panel-title">Навигация</div>
+      <div class="nav-panel" id="nav-panel">
+        <div class="nav-placeholder">Карта появится после старта</div>
       </div>
-      <div class="timer-block">
-        <div class="timer-row">
-          <span>Таймер области:</span>
-          <span id="sec-total" style="font-family:monospace;font-size:.75rem"></span>
-        </div>
-        <div class="timer-big" id="dh-timer">--:--</div>
-        <div class="timer-bar"><div class="timer-fill" id="dh-tbar" style="width:0%"></div></div>
-      </div>
-      <div class="ctrl-block" id="ctrl-block">
-        <!-- filled by showCtrl() -->
-      </div>
+    </div>
+  </div>
+
+  <div id="tech-stop-banner" class="tech-stop-bar" style="display:none">⏸ Техническая остановка</div>
+
+  <!-- Dynamic action bar — varies by status -->
+  <div id="action-bar" class="action-bar">
+    <div style="flex:1;text-align:center;color:var(--muted)">—</div>
+  </div>
+</div>
+
+<!-- ── ROUTE DETAIL ──────────────────────────── -->
+<div id="s-route" class="screen">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="btn" onclick="go('s-dashboard')">← Назад</button>
+      <div class="topbar-title">Маршрут тура</div>
+    </div>
+    <div class="topbar-right">
+      <span class="chip">📋 Разделов: <b id="r-total-sections">—</b></span>
+      <span class="chip">⏱ <b id="r-total-time">—</b></span>
+    </div>
+  </div>
+  <div class="fullpage">
+    <h2>Все разделы</h2>
+    <div id="route-full"></div>
+  </div>
+</div>
+
+<!-- ── USERS DETAIL ─────────────────────────── -->
+<div id="s-users" class="screen">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="btn" onclick="go('s-dashboard')">← Назад</button>
+      <div class="topbar-title">Участники тура</div>
+    </div>
+    <div class="topbar-right">
+      <span class="chip">👤 Всего: <b id="u-total">0</b></span>
+      <button class="btn btn-ghost-gold" onclick="openAddUser()">+ Добавить</button>
+    </div>
+  </div>
+  <div class="fullpage">
+    <table class="tourist-table" style="background:var(--card);border-radius:var(--radius);overflow:hidden">
+      <thead>
+        <tr><th style="width:60px">Номер</th><th>Устройство</th><th>ID номер</th><th style="width:60px"></th></tr>
+      </thead>
+      <tbody id="users-tbody">
+        <tr><td colspan="4" class="empty-lobby"><p>Список пуст</p></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── MODALS ────────────────────────────────── -->
+<div id="m-add-user" class="modal-bg">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('m-add-user')">✕</button>
+    <div class="modal-title" style="text-align:center">Добавление пользователя</div>
+    <div class="modal-subtitle" style="text-align:center">Введите ID пользователя в поле ниже</div>
+    <div class="field">
+      <input id="au-token" placeholder="ID пользователя" onkeydown="if(event.key==='Enter')doAddUser()"/>
+    </div>
+    <button id="btn-au" class="action-full-gold" onclick="doAddUser()">Добавить</button>
+  </div>
+</div>
+
+<div id="m-admin" class="modal-bg">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('m-admin')">✕</button>
+    <div class="modal-title">Администрирование</div>
+    <div class="modal-section" style="margin-top:16px">
+      <h4>Техническая остановка</h4>
+      <button id="btn-tech-stop" class="btn btn-big btn-ghost-gold" onclick="toggleTechStop()">Остановить тур</button>
+    </div>
+    <div class="modal-section">
+      <h4>Завершить тур</h4>
+      <button class="btn btn-big btn-ghost-red" onclick="openConfirmFinish()">Завершить</button>
+    </div>
+    <div style="background:var(--red-dim);color:#fca5a5;padding:10px;border-radius:var(--radius-sm);font-size:.72rem;margin-top:14px;line-height:1.5;">
+      Данный функционал нужен только при неполадках и ошибках, вмешательство изменит общее время тура
     </div>
   </div>
 </div>
 
-<!-- Tourists overlay -->
-<div class="tp-overlay" id="tp-overlay" onclick="closeTPOutside(event)">
-  <div class="tp-inner">
-    <div class="tp-head">
-      <h3>Участники (<span id="tp-cnt">0</span>)</h3>
-      <button class="btn-x" onclick="toggleTP()">✕</button>
-    </div>
-    <div class="tp-body" id="tp-body">
-      <div style="color:var(--muted);font-size:.83rem;padding:20px;text-align:center">Нет участников</div>
-    </div>
+<div id="m-confirm-stop" class="modal-bg">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('m-confirm-stop')">✕</button>
+    <div class="modal-title">Остановить тур?</div>
+    <div class="modal-subtitle">Остановка тура не продлевает время, однако он встанет на паузу пока не закончится. Убедитесь, что это необходимо.</div>
+    <button class="btn btn-big btn-red" onclick="confirmTechStop()">Подтвердить</button>
   </div>
 </div>
+
+<div id="m-confirm-finish" class="modal-bg">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('m-confirm-finish')">✕</button>
+    <div class="modal-title">Завершить тур?</div>
+    <div class="modal-subtitle">Завершение тура закроет у всех программу тура и вернёт на начальный этап каждый планшет в группе. Убедитесь, что это действие необходимо.</div>
+    <button class="btn btn-big btn-red" onclick="confirmFinishTour()">Подтвердить</button>
+  </div>
+</div>
+
+<div id="m-transition" class="modal-bg">
+  <div class="modal" style="max-width:460px">
+    <button class="modal-close" onclick="closeModal('m-transition')">✕</button>
+    <div class="modal-title" id="mt-title">Переход между разделами</div>
+    <div class="modal-subtitle" id="mt-subtitle">Переход на следующий раздел, запустит новый видео-ряд</div>
+    <button class="action-full-gold" onclick="skipTransition()">Перейти</button>
+  </div>
+</div>
+
+<div id="toasts"></div>
 
 <script>
-/* ══ STATE ══════════════════════════════════════════ */
-let JWT = null, SESSION_ID = null, ws = null;
-let tourists = [], sections = [], hallSections = [];
-let SPEC_NUMBER = null;
-let LANG = 'ru';
-let secRemain = 0, secTotal = 1;
-let timerIv = null, tourStartedAt = null, tourTimerIv = null;
-let sessionStatus = 'waiting';
-let doneSections = [];
-let breakRemain = 0, breakIv = null;
-let isOnBreak = false, breakIsTechnical = false, breakIsAuto = false;
+/* ════ STATE ════ */
+let JWT=null, SESSION_ID=null, SPEC_NUMBER=null, LANG='ru';
+let ws=null;
+let tourists=[];
+let sections=[];           // hall_sections: current hall sections
+let allSections=[];        // from media-bundle (optional)
+let halls=[];              // from media-bundle
+let state={
+  status:'waiting',
+  current_section:null,
+  current_hall:null,
+  timer:null,
+  total_remaining:0,
+  total_tour:0,
+  total_sections:0,
+  current_section_index:0,
+  remaining_sections_count:0,
+  is_technical_stop:false,
+  is_auto_break:false,
+  is_last_section:false,
+  hall_transition:null,
+  section_transition:null,
+  break_remaining:0,
+};
 
-/* ══ UTILS ══════════════════════════════════════════ */
+let secRemain=0, secTotal=1, breakRemain=0;
+let timerIv=null, breakIv=null, tourTimerIv=null, tourElapsed=0;
+
+/* ════ UTILS ════ */
 const API = p => `/${LANG}/api/v1${p}`;
-const WS_PROTO = location.protocol === 'https:' ? 'wss' : 'ws';
+const WS_PROTO = location.protocol==='https:'?'wss':'ws';
 const WSURL = sid => `${WS_PROTO}://${location.host}/ws/tour/${sid}/?role=specialist&token=${JWT}&lang=${LANG}`;
 
-async function req(method, path, body=null, auth=true) {
-  const h = {'Content-Type':'application/json'};
-  if (auth && JWT) h['Authorization'] = `Bearer ${JWT}`;
-  try {
-    const r = await fetch(API(path), {method, headers:h, body: body?JSON.stringify(body):undefined});
-    const d = await r.json().catch(()=>null);
-    return {ok: r.ok, status: r.status, data: d};
-  } catch { return {ok:false, status:0, data:null}; }
+function fmt(sec){sec=Math.max(0,Math.floor(sec||0));const m=Math.floor(sec/60),s=sec%60;return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;}
+function fmtH(sec){sec=Math.max(0,Math.floor(sec||0));const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;}
+
+async function req(method,path,body=null,auth=true){
+  const h={'Content-Type':'application/json'};
+  if(auth&&JWT) h['Authorization']=`Bearer ${JWT}`;
+  try{
+    const r=await fetch(API(path),{method,headers:h,body:body?JSON.stringify(body):undefined});
+    const d=await r.json().catch(()=>null);
+    return {ok:r.ok,status:r.status,data:d};
+  }catch{return {ok:false,status:0,data:null};}
 }
 
-function toast(msg, type='info') {
-  const c = document.getElementById('toasts');
-  const t = document.createElement('div');
-  t.className = `toast t-${type}`;
-  t.textContent = msg;
-  c.appendChild(t);
-  requestAnimationFrame(() => t.classList.add('in'));
-  setTimeout(() => { t.classList.remove('in'); setTimeout(()=>t.remove(), 280); }, 3200);
+function toast(msg,type='info'){
+  const el=document.createElement('div');
+  el.className=`toast toast-${type}`;el.textContent=msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(()=>el.style.opacity='0',2700);
+  setTimeout(()=>el.remove(),3000);
+}
+function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function openModal(id){document.getElementById(id).classList.add('active');}
+function closeModal(id){document.getElementById(id).classList.remove('active');}
+
+function setWsStatus(s){
+  const dot=document.querySelector('#ws-indicator .ws-dot');
+  const txt=document.getElementById('ws-status-text');
+  if(!dot)return;
+  dot.className='ws-dot '+(s==='ok'?'ok':s==='wait'?'wait':'no');
+  txt.textContent=s==='ok'?'online':(s==='wait'?'connecting':'offline');
+}
+function setStatusBadge(status){
+  const el=document.getElementById('tour-status-badge');
+  if(!el)return;
+  const map={waiting:'Ожидание',in_progress:'Тур идёт',on_break:'Перерыв',section_transition:'Переход (раздел)',hall_transition:'Переход (зал)',finished:'Завершён'};
+  el.innerHTML=`<span class="status-badge status-${status}">${map[status]||status}</span>`;
 }
 
-function go(id) {
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
+/* ════ LANG ════ */
+function setLang(btn,l){LANG=l;document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('sel'));btn.classList.add('sel');}
 
-function fmt(sec) {
-  sec = Math.max(0, Math.round(sec));
-  const h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
-  if (h) return `${pad(h)}:${pad(m)}:${pad(s)}`;
-  return `${pad(m)}:${pad(s)}`;
-}
-function pad(n){return String(n).padStart(2,'0');}
-
-function fmtHMS(sec) {
-  sec = Math.max(0, Math.round(sec));
-  return `${pad(Math.floor(sec/3600))}:${pad(Math.floor((sec%3600)/60))}:${pad(sec%60)}`;
-}
-
-function fmtTime(iso) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'});
-}
-
-/* ══ LANG ═══════════════════════════════════════════ */
-function setLang(btn, l) {
-  LANG = l;
-  document.querySelectorAll('.lang-btn').forEach(b=>b.classList.remove('sel'));
-  btn.classList.add('sel');
-}
-
-/* ══ LOGIN ══════════════════════════════════════════ */
-async function doLogin() {
-  const user = document.getElementById('in-user').value.trim();
-  const pass = document.getElementById('in-pass').value;
-  if (!user||!pass) { toast('Введите логин и пароль','error'); return; }
-  const btn = document.getElementById('btn-login');
-  btn.disabled = true; btn.textContent = 'Вхожу...';
-
-  const r = await req('POST','/users/auth/login/',{username:user,password:pass},false);
-  btn.disabled = false; btn.textContent = 'Войти';
-
-  if (r.ok && r.data?.access) {
-    JWT = r.data.access;
-    SESSION_ID = r.data.session_id;
-    if (!SESSION_ID) { toast('Сессия не создана — возможно пользователь не специалист','error'); return; }
+/* ════ LOGIN / LOGOUT ════ */
+async function doLogin(){
+  const user=document.getElementById('in-user').value.trim();
+  const pass=document.getElementById('in-pass').value;
+  if(!user||!pass){toast('Введите логин и пароль','error');return;}
+  const btn=document.getElementById('btn-login');btn.disabled=true;btn.textContent='Вхожу...';
+  const r=await req('POST','/users/auth/login/',{username:user,password:pass},false);
+  btn.disabled=false;btn.textContent='Войти';
+  if(r.ok&&r.data?.access){
+    JWT=r.data.access;SESSION_ID=r.data.session_id;
+    if(!SESSION_ID){toast('Сессия не создана — возможно пользователь не специалист','error');return;}
     toast('Вход выполнен','success');
     connectWS();
     go('s-lobby');
-  } else {
-    toast(r.data?.detail || 'Неверный логин или пароль','error');
+  }else{
+    toast(r.data?.detail||'Неверный логин или пароль','error');
   }
 }
-
-async function doLogout() {
-  try {
-    await req('POST','/users/auth/logout/');
-  } catch {}
-  if (ws) ws.close();
-  JWT=null; SESSION_ID=null; SPEC_NUMBER=null; tourists=[]; sections=[];
-  stopTimer(); stopTourTimer();
-  go('s-login');
-  toast('Выход выполнен','info');
+async function doLogout(){
+  try{await req('POST','/users/auth/logout/');}catch{}
+  if(ws){try{ws.close();}catch{}}
+  JWT=null;SESSION_ID=null;SPEC_NUMBER=null;tourists=[];sections=[];
+  stopTimer();stopBreakTimer();stopTourTimer();
+  go('s-login');toast('Выход выполнен','info');
 }
 
+/* ════ WS ════ */
+function connectWS(){
+  if(!SESSION_ID)return;
+  if(ws){try{ws.close();}catch{}}
+  setWsStatus('wait');
+  ws=new WebSocket(WSURL(SESSION_ID));
+  ws.onopen=()=>{setWsStatus('ok');toast('WebSocket подключён','success');};
+  ws.onclose=e=>{setWsStatus('no');ws=null;if(e.code!==1000&&e.code!==4010)toast(`WS отключён (${e.code})`,'error');};
+  ws.onerror=()=>toast('Ошибка WebSocket','error');
+  ws.onmessage=e=>{try{onMsg(JSON.parse(e.data));}catch(err){console.error(err);}};
+}
+function send(obj){if(!ws||ws.readyState!==1){toast('WS не подключён','error');return;}ws.send(JSON.stringify(obj));}
 
-/* ══ EXHIBITS ═══════════════════════════════════════ */
-function renderExhibits(exhibits) {
-  const el = document.getElementById('exhibits-list');
-  const cnt = document.getElementById('ex-count');
-  if (!exhibits.length) {
-    cnt.textContent = '';
-    el.innerHTML = '<div class="ex-empty">Экспонаты появятся после старта тура</div>';
-    return;
-  }
-  cnt.textContent = `${exhibits.length} экспонатов`;
-  const BASE_MEDIA = '/media/';
-  el.innerHTML = exhibits.map((ex, i) => {
-    const thumb = ex.thumbnail
-      ? `<img class="ex-thumb" src="${BASE_MEDIA}${ex.thumbnail}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
-        + `<div class="ex-thumb-placeholder" style="display:none">🖼</div>`
-      : `<div class="ex-thumb-placeholder">🖼</div>`;
-    return `<div class="ex-item">
-      ${thumb}
-      <div style="flex:1;min-width:0">
-        <div class="ex-title">${ex.title||'—'}</div>
-        ${ex.description ? `<div class="ex-desc">${ex.description}</div>` : ''}
-      </div>
-      <div class="ex-num">${pad(i+1)}</div>
-    </div>`;
-  }).join('');
+function onMsg(d){
+  const t=d.type;
+  if(t==='tour_info'){applyTourInfo(d);}
+  else if(t==='tour_finished'){onTourFinished();}
+  else if(t==='tourist_joined'){if(d.tourists)setTourists(d.tourists);if(typeof d.tourist_count==='number')updCount(d.tourist_count);toast('Турист подключился','info');}
+  else if(t==='tourist_left'){if(d.tourists)setTourists(d.tourists);if(typeof d.tourist_count==='number')updCount(d.tourist_count);}
+  else if(t==='tourist_kicked'){if(d.tourists)setTourists(d.tourists);if(typeof d.tourist_count==='number')updCount(d.tourist_count);toast('Турист отключён','info');}
 }
 
-/* ══ WS ════════════════════════════════════════════ */
-function connectWS() {
-  if (!SESSION_ID) return;
-  if (ws) ws.close();
-  setDot('ws-wait');
-  ws = new WebSocket(WSURL(SESSION_ID));
-  ws.onopen = ()=>{ setDot('ws-ok'); toast('WebSocket подключён','success'); };
-  ws.onclose = e=>{ setDot('ws-no'); ws=null; if(e.code!==1000&&e.code!==4010) toast(`WS отключён (${e.code})`,'error'); };
-  ws.onerror = ()=>toast('Ошибка WebSocket','error');
-  ws.onmessage = e=>{ try{onMsg(JSON.parse(e.data));}catch(err){console.error(err);} };
+/* ════ ADD USER ════ */
+function openAddUser(){document.getElementById('au-token').value='';openModal('m-add-user');}
+async function doAddUser(){
+  const token=document.getElementById('au-token').value.trim();
+  if(!token){toast('Введите ID','error');return;}
+  const btn=document.getElementById('btn-au');btn.disabled=true;btn.textContent='Добавляю...';
+  const r=await req('POST','/tour/join/',{specialist_number:SPEC_NUMBER,device_token:Number(token)},false);
+  btn.disabled=false;btn.textContent='Добавить';
+  if(r.ok){toast('Пользователь успешно добавлен','success');closeModal('m-add-user');}
+  else toast(r.data?.error||'Неверный ID пользователя, попробуйте ещё раз','error');
 }
 
-function send(obj) {
-  if (!ws||ws.readyState!==1) { toast('WebSocket не подключён','error'); return; }
-  ws.send(JSON.stringify(obj));
-}
-
-/* ══ MESSAGE HANDLER ════════════════════════════════ */
-function onMsg(d) {
-  const t = d.type;
-  setDot('ws-ok');
-  if (t==='tour_info')           { applyTourInfo(d); }
-  else if (t==='tour_finished')  { setStatus('finished'); showCtrl('finished'); stopTimer(); stopBreakTimer(); stopTourTimer(); document.getElementById('dh-timer').textContent='00:00'; toast('Тур завершён!','success'); }
-  else if (t==='tourist_joined') { if(d.tourists) setTourists(d.tourists); else updCount(d.tourist_count); toast('Турист подключился','info'); }
-  else if (t==='tourist_left')   { if(d.tourists) setTourists(d.tourists); else updCount(d.tourist_count); }
-  else if (t==='tourist_kicked') { if(d.tourists) setTourists(d.tourists); else updCount(d.tourist_count); toast('Турист отключён','info'); }
-}
-
-
-/* ══ CONTROLS ═══════════════════════════════════════ */
-function showCtrl(state) {
-  const el = document.getElementById('ctrl-block');
-  const adjustRow = (target, label) => `
-    <div class="btn-adjust-row">
-      <button class="btn-adj" onclick="send({action:'adjust_time',target:'${target}',delta:-60})">−1м</button>
-      <span class="adj-label">${label}</span>
-      <button class="btn-adj" onclick="send({action:'adjust_time',target:'${target}',delta:60})">+1м</button>
-    </div>`;
-
-  const html = {
-    waiting: `<button class="btn-ctrl btn-start" onclick="send({action:'start_tour'})">▶ Начать тур</button>`,
-
-    active: `<div class="ctrl-row2">
-      <button class="btn-ctrl btn-nav" onclick="send({action:'prev_section'})">◀ Пред. раздел</button>
-      <button class="btn-ctrl btn-nav" onclick="send({action:'next_section'})">След. раздел ▶</button>
-    </div>
-    ${adjustRow('section','Время раздела')}
-    <div class="ctrl-row2">
-      <button class="btn-ctrl btn-pause" onclick="send({action:'set_break'})">⏸ Перерыв</button>
-      <button class="btn-ctrl btn-tech" onclick="send({action:'technical_stop'})">🔧 Тех. остановка</button>
-    </div>
-    <button class="btn-ctrl btn-stop" onclick="confirmFinish()">■ Завершить</button>`,
-
-    break_manual: `<div class="break-notice">⏸ Перерыв (ручной)</div>
-      <button class="btn-ctrl btn-resume" onclick="send({action:'resume_tour'})">▶ Продолжить тур</button>
-      <button class="btn-ctrl btn-stop" onclick="confirmFinish()">■ Завершить</button>`,
-
-    break_technical: `<div class="break-notice">🔧 Техническая остановка</div>
-      <button class="btn-ctrl btn-resume" onclick="send({action:'resume_tour'})">▶ Продолжить тур</button>
-      <button class="btn-ctrl btn-stop" onclick="confirmFinish()">■ Завершить</button>`,
-
-    break_auto: `<div class="break-notice">⏸ Перерыв между разделами</div>
-      <div class="break-timer" id="break-timer-display">${fmt(breakRemain)}</div>
-      ${adjustRow('break','Время перерыва')}
-      <button class="btn-ctrl btn-resume" onclick="send({action:'resume_tour'})">▶ Пропустить перерыв</button>
-      <button class="btn-ctrl btn-tech" onclick="send({action:'technical_stop'})">🔧 Тех. остановка</button>
-      <button class="btn-ctrl btn-stop" onclick="confirmFinish()">■ Завершить</button>`,
-
-    hall_trans: `<div class="break-notice">🚶 Переход между залами</div>
-      <div class="break-timer" id="break-timer-display">${fmt(breakRemain)}</div>
-      ${adjustRow('break','Время перехода')}
-      <button class="btn-ctrl btn-resume" onclick="send({action:'resume_tour'})">▶ Пропустить переход</button>
-      <button class="btn-ctrl btn-tech" onclick="send({action:'technical_stop'})">🔧 Тех. остановка</button>
-      <button class="btn-ctrl btn-stop" onclick="confirmFinish()">■ Завершить</button>`,
-
-    sec_trans: `<div class="break-notice">🚶 Переход между разделами</div>
-      <div class="break-timer" id="break-timer-display">${fmt(breakRemain)}</div>
-      ${adjustRow('break','Время перехода')}
-      <button class="btn-ctrl btn-resume" onclick="send({action:'resume_tour'})">▶ Пропустить переход</button>
-      <button class="btn-ctrl btn-tech" onclick="send({action:'technical_stop'})">🔧 Тех. остановка</button>
-      <button class="btn-ctrl btn-stop" onclick="confirmFinish()">■ Завершить</button>`,
-
-    finished: `<div class="finished-notice">✓ Тур завершён</div>
-      <button class="btn-ctrl btn-sm" style="width:100%;margin-top:6px;padding:10px" onclick="doLogout()">Создать новую сессию</button>`
-  };
-  el.innerHTML = html[state] || html.waiting;
-  el.style.display = 'flex';
-  el.style.flexDirection = 'column';
-  el.style.gap = '8px';
-}
-
-function confirmFinish() {
-  if (confirm('Завершить тур? Действие нельзя отменить.')) send({action:'finish_tour'});
-}
-
-/* ══ STATUS ═════════════════════════════════════════ */
-function setStatus(st) {
-  sessionStatus = st;
-  const labels = {waiting:'Ожидание',in_progress:'Активен',on_break:'Перерыв',section_transition:'Переход (раздел)',hall_transition:'Переход (зал)',finished:'Завершён'};
-  const badge = document.getElementById('dh-badge');
-  badge.className = `s-badge sb-${st}`;
-  badge.textContent = labels[st]||st;
-}
-
-function setDot(cls) {
-  document.getElementById('dh-wsdot').className = `ws-dot ${cls}`;
-  document.getElementById('ti-wsdot').className  = `ws-dot ${cls}`;
-}
-
-/* ══ TOURISTS ═══════════════════════════════════════ */
-function setTourists(list) {
-  tourists = list||[];
+/* ════ TOURISTS TABLE ════ */
+function setTourists(list){
+  tourists=list||[];
+  renderTourists();
   updCount(tourists.length);
-  renderLobbyTable();
-  renderTPPanel();
 }
-
-function updCount(n) {
-  document.getElementById('lob-cnt').textContent   = n;
-  document.getElementById('st-tourists').textContent = n;
-  document.getElementById('dh-cnt').textContent    = n;
-  document.getElementById('tp-cnt').textContent    = n;
+function updCount(n){
+  document.getElementById('lobby-count').textContent=n;
+  document.getElementById('st-tourists').textContent=n;
+  document.getElementById('u-total').textContent=n;
 }
-
-function renderLobbyTable() {
-  const tbody = document.getElementById('lob-tbody');
-  const table = document.getElementById('lob-table');
-  const empty = document.getElementById('lob-empty');
-  if (!tourists.length) { table.style.display='none'; empty.style.display=''; return; }
-  table.style.display=''; empty.style.display='none';
-  tbody.innerHTML = tourists.map((t,i)=>`<tr>
-    <td>${t.tour_number||i+1}</td>
-    <td style="font-family:monospace;font-size:.82rem;font-weight:600">#${t.device_token}</td>
-    <td style="font-size:.76rem">${t.device_name||'—'}</td>
-    <td style="font-size:.72rem;color:var(--muted)">${t.ip_address||''}</td>
-    <td>${fmtTime(t.joined_at)}</td>
-    <td><button class="btn-del" onclick="kickT(${t.id})" title="Удалить">🗑</button></td>
-  </tr>`).join('');
+function renderTourists(){
+  const rows=tourists.length?tourists.map((t,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td>${t.device_name||'iPad'}</td>
+      <td>ID: ${String(t.device_token).padStart(6,'0')}</td>
+      <td><button class="btn-del" onclick="kickTourist(${t.id})" title="Отключить">🗑</button></td>
+    </tr>`).join(''):`<tr><td colspan="4" class="empty-lobby"><p>Пользователей не обнаружено, добавьте их вручную или ожидайте подключения</p></td></tr>`;
+  document.getElementById('lobby-tbody').innerHTML=rows;
+  document.getElementById('users-tbody').innerHTML=rows;
 }
+function kickTourist(id){send({action:'kick_tourist',tourist_id:id});}
 
-function renderTPPanel() {
-  const el = document.getElementById('tp-body');
-  if (!tourists.length) { el.innerHTML='<div style="color:var(--muted);font-size:.83rem;padding:20px;text-align:center">Нет участников</div>'; return; }
-  el.innerHTML = tourists.map((t,i)=>`<div class="tp-row">
-    <div><div class="n">#${t.tour_number||i+1}</div><div class="tk">ID: ${t.device_token}${t.device_name ? ' • '+t.device_name : ''}</div></div>
-    <button class="btn-del" onclick="kickT(${t.id})" title="Кикнуть">🗑</button>
-  </div>`).join('');
+/* ════ TOUR CONTROL ════ */
+function startTour(){send({action:'start_tour'});go('s-dashboard');}
+function nextSection(){send({action:'next_section'});}
+function prevSection(){send({action:'prev_section'});}
+function manualBreak(){send({action:'set_break'});}
+function resumeTour(){send({action:'resume_tour'});}
+function skipTransition(){send({action:'resume_tour'});closeModal('m-transition');}
+function adjustTime(target,delta){send({action:'adjust_time',target,delta});}
+
+/* ════ ADMIN ════ */
+function openAdmin(){
+  const isStop=state.is_technical_stop;
+  const btn=document.getElementById('btn-tech-stop');
+  btn.textContent=isStop?'Возобновить тур':'Остановить тур';
+  btn.className='btn btn-big '+(isStop?'btn-red':'btn-ghost-gold');
+  openModal('m-admin');
 }
-
-function kickT(id) {
-  if (!confirm(`Отключить туриста #${id}?`)) return;
-  send({action:'kick_tourist', tourist_id: id});
+function toggleTechStop(){
+  if(state.is_technical_stop){send({action:'resume_tour'});closeModal('m-admin');}
+  else openConfirmStop();
 }
+function openConfirmStop(){closeModal('m-admin');openModal('m-confirm-stop');}
+function confirmTechStop(){send({action:'technical_stop'});closeModal('m-confirm-stop');}
+function openConfirmFinish(){closeModal('m-admin');openModal('m-confirm-finish');}
+function confirmFinishTour(){send({action:'finish_tour'});closeModal('m-confirm-finish');}
 
-/* ══ ADD TOURIST ════════════════════════════════════ */
-async function doAddTourist() {
-  const token = document.getElementById('in-token').value.trim();
-  if (!token) { toast('Введите device_token','error'); return; }
-  if (!SESSION_ID) { toast('Нет активной сессии','error'); return; }
-  const r = await req('POST',`/specialist/sessions/${SESSION_ID}/tourists/add/`,{device_token:token});
-  if (r.ok) {
-    toast('Пользователь успешно добавлен','success');
-    document.getElementById('in-token').value='';
-    go('s-lobby');
-  } else {
-    toast(r.data?.error||'Неверный ID пользователя, попробуйте ещё раз','error');
+/* ════ TOUR INFO APPLY ════ */
+function applyTourInfo(d){
+  if(typeof d.specialist_number!=='undefined')SPEC_NUMBER=d.specialist_number;
+  if(d.tourists)setTourists(d.tourists);
+  else if(typeof d.tourist_count==='number')updCount(d.tourist_count);
+
+  state.status=d.status;
+  state.current_section=d.current_section;
+  state.current_hall=d.current_hall;
+  state.timer=d.timer;
+  state.total_remaining=d.total_remaining_seconds||0;
+  state.total_tour=d.total_tour_seconds||0;
+  state.total_sections=d.total_sections_count||0;
+  state.current_section_index=d.current_section_index||0;
+  state.remaining_sections_count=d.remaining_sections_count||0;
+  state.is_technical_stop=!!d.is_technical_stop;
+  state.is_auto_break=!!d.is_auto_break;
+  state.is_last_section=!!d.is_last_section;
+  state.hall_transition=d.hall_transition||null;
+  state.section_transition=d.section_transition||null;
+  state.break_remaining=d.break_remaining_seconds||0;
+  sections=d.hall_sections||[];
+
+  setStatusBadge(state.status);
+
+  // Top info bar
+  document.getElementById('dh-hall').textContent=state.current_hall?.name||'—';
+  document.getElementById('dh-section').textContent=state.current_section?.name||'—';
+  document.getElementById('st-sections').textContent=state.total_sections||'—';
+  document.getElementById('dh-hall-total').textContent=sections.length?`(${sections.length} разделов)`:'';
+  document.getElementById('r-total-sections').textContent=state.total_sections||'—';
+  document.getElementById('r-total-time').textContent=fmtH(state.total_tour);
+
+  // Route list (current hall)
+  renderRouteList();
+  renderNavPanel();
+  updateActionBar();
+
+  // Update tour timer (total time)
+  updateTourTimer();
+
+  // Timers — reset based on status
+  stopTimer();stopBreakTimer();
+  if(state.status==='in_progress'&&state.timer){
+    secTotal=state.timer.section_total_seconds||1;
+    secRemain=state.timer.section_remaining_seconds||0;
+    startTimer();
+  }else if(state.status==='on_break'&&state.timer&&d.timer?.section_remaining_seconds!=null&&!state.is_auto_break){
+    // manual break - paused section
+    secTotal=state.timer.section_total_seconds||1;
+    secRemain=state.timer.section_remaining_seconds||0;
+    // Timer is paused during manual break
+  }else if((state.status==='on_break'&&state.is_auto_break)||state.status==='hall_transition'||state.status==='section_transition'){
+    breakRemain=state.break_remaining||0;
+    if(!state.is_technical_stop)startBreakTimer();
   }
 }
 
-/* ══ TIMERS ═════════════════════════════════════════ */
-function startTimer() {
-  stopTimer();
-  updTimer();
-  timerIv = setInterval(()=>{ secRemain=Math.max(0,secRemain-1); updTimer(); }, 1000);
-}
-
-function stopTimer() { if(timerIv){clearInterval(timerIv);timerIv=null;} }
-
-function updTimer() {
-  document.getElementById('dh-timer').textContent = fmt(secRemain);
-  const pct = secTotal>0 ? Math.min(100,(secTotal-secRemain)/secTotal*100) : 0;
-  document.getElementById('dh-tbar').style.width = `${pct}%`;
-}
-
-let tourElapsed = 0;
-function startTourTimer() {
-  stopTourTimer();
-  tourTimerIv = setInterval(()=>{ tourElapsed++; document.getElementById('dh-tourtime').textContent=fmtHMS(tourElapsed); },1000);
-}
-function stopTourTimer() { if(tourTimerIv){clearInterval(tourTimerIv);tourTimerIv=null;} }
-
-function startBreakTimer() {
-  stopBreakTimer();
-  updBreakTimer();
-  breakIv = setInterval(()=>{
-    breakRemain = Math.max(0, breakRemain - 1);
-    updBreakTimer();
-  }, 1000);
-}
-function stopBreakTimer() { if(breakIv){clearInterval(breakIv);breakIv=null;} }
-function updBreakTimer() {
-  const el = document.getElementById('break-timer-display');
-  if (el) el.textContent = fmt(breakRemain);
-  // Also show in main timer area during break
-  document.getElementById('dh-timer').textContent = fmt(breakRemain);
-}
-
-
-/* ══ TOUR INFO SCREEN ═══════════════════════════════ */
-function enterTourInfo() {
-  if (!ws || ws.readyState!==1) connectWS();
-  send({action:'get_tour_info'});
-  go('s-tour-info');
-}
-
-function applyTourInfo(d) {
-  const status = d.status;
-
-  // ── Обновляем hall_sections для маршрута ──
-  if (d.hall_sections?.length) hallSections = d.hall_sections;
-
-  // ── Общие статы ──
-  if (d.total_sections_count != null) {
-    document.getElementById('st-sections').textContent = d.total_sections_count;
-    document.getElementById('ti-seccnt').textContent   = d.total_sections_count;
-  }
-  if (d.total_tour_seconds != null) {
-    const t = fmtHMS(d.total_tour_seconds);
-    document.getElementById('st-totaltime').textContent = t;
-    document.getElementById('ti-totaltime').textContent = t;
-  }
-  updCount(d.tourist_count ?? 0);
-
-  // ── Экран tour_info (waiting или первый запуск) ──
-  const sec  = d.current_section;
-  const hall = d.current_hall;
-  document.getElementById('ti-hall').textContent    = hall?.name || '—';
-  document.getElementById('ti-section').textContent = sec?.name  || '—';
-  document.getElementById('ti-section-dur').textContent = sec ? `${Math.floor(sec.duration_seconds/60)}м ${sec.duration_seconds%60}с` : '';
-  renderTiRoute();
-
-  // ── Dashboard ──
-  setStatus(status);
-  document.getElementById('dh-hall').textContent = hall?.name || '—';
-  document.getElementById('dh-sec').textContent  = sec?.name || '—';
-
-  if (sec) { renderRouteFromHallSections(sec.id); }
-
-  stopBreakTimer();
-  isOnBreak = false;
-
-  if (status === 'in_progress') {
-    const timer = d.timer;
-    if (timer) {
-      secRemain = timer.section_remaining_seconds || 0;
-      secTotal  = timer.section_total_seconds || 1;
-      document.getElementById('sec-total').textContent = fmt(secTotal);
-      startTimer();
-    }
-    showCtrl('active');
-    if (!tourTimerIv) startTourTimer();
-
-  } else if (status === 'hall_transition') {
-    stopTimer();
-    isOnBreak = true;
-    breakRemain = d.break_remaining_seconds || 0;
-    startBreakTimer();
-    showCtrl('hall_trans');
-    toast('Переход в зал: ' + (hall?.name || '—'), 'info');
-
-  } else if (status === 'section_transition') {
-    stopTimer();
-    isOnBreak = true;
-    breakRemain = d.break_remaining_seconds || 0;
-    startBreakTimer();
-    showCtrl('sec_trans');
-    toast('Переход к разделу: ' + (sec?.name || '—'), 'info');
-
-  } else if (status === 'on_break') {
-    stopTimer();
-    isOnBreak = true;
-    breakIsTechnical = !!d.is_technical_stop;
-    breakIsAuto      = !!d.is_auto_break;
-    if (breakIsAuto) {
-      breakRemain = d.break_remaining_seconds || 0;
-      startBreakTimer();
-      showCtrl('break_auto');
-      toast('Автоперерыв между разделами', 'info');
-    } else if (breakIsTechnical) {
-      if (d.timer) { secRemain = d.timer.section_remaining_seconds || 0; updTimer(); }
-      showCtrl('break_technical');
-      toast('Техническая остановка', 'info');
-    } else {
-      if (d.timer) { secRemain = d.timer.section_remaining_seconds || 0; updTimer(); }
-      showCtrl('break_manual');
-      toast('Перерыв', 'info');
-    }
-
-  } else if (status === 'waiting') {
-    showCtrl('waiting');
-
-  } else if (status === 'finished') {
-    stopTimer(); stopTourTimer();
-    showCtrl('finished');
-    toast('Тур завершён!', 'success');
-  }
-}
-
-function renderTiRoute() {
-  const el = document.getElementById('ti-route-list');
-  if (!hallSections.length) {
-    el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);font-size:.82rem">Загрузка...</div>';
-    return;
-  }
-  el.innerHTML = hallSections.map((s, i) => `
-    <div class="route-item" style="padding:10px 16px">
-      <div class="r-num">${pad(i+1)}</div>
-      <div class="r-info"><div class="r-name">${s.name}</div></div>
-      <div class="r-dur">${fmt(s.duration_seconds)}${s.break_duration_seconds?'<br><span style="color:var(--gold);font-size:.65rem">+'+fmt(s.break_duration_seconds)+'</span>':''}</div>
-    </div>`).join('');
-}
-
-function renderRouteFromHallSections(activeSid) {
-  const el = document.getElementById('route-list');
-  if (!hallSections.length) { el.innerHTML=''; return; }
-  el.innerHTML = hallSections.map((s, i) => {
-    const isActive = s.id === activeSid;
-    return `<div class="route-item ${isActive?'r-active':''}" id="ri${s.id}">
-      <div class="r-num">${pad(i+1)}</div>
-      <div class="r-info"><div class="r-name">${s.name}</div></div>
+function renderRouteList(){
+  const el=document.getElementById('route-list');
+  if(!sections.length){el.innerHTML=`<div style="padding:20px;text-align:center;color:var(--muted);font-size:.85rem">Нет данных</div>`;return;}
+  const currentId=state.current_section?.id;
+  const currentIdx=sections.findIndex(s=>s.id===currentId);
+  el.innerHTML=sections.map((s,i)=>{
+    const active=s.id===currentId;
+    const done=currentIdx>=0&&i<currentIdx;
+    return `<div class="route-item ${active?'r-active':''} ${done?'r-done':''}">
+      <div class="r-num">${String(i+1).padStart(2,'0')}</div>
+      <div class="r-info">
+        <div class="r-hall">${state.current_hall?.name||''}</div>
+        <div class="r-name">${s.name||'—'}</div>
+      </div>
       <div class="r-dur">${fmt(s.duration_seconds)}</div>
     </div>`;
   }).join('');
-  if (activeSid) { const el2=document.getElementById(`ri${activeSid}`); if(el2) el2.scrollIntoView({behavior:'smooth',block:'nearest'}); }
 }
 
-function doStartTour() {
-  send({action:'start_tour'});
-  showCtrl('waiting');
-  go('s-dashboard');
+function renderNavPanel(){
+  const el=document.getElementById('nav-panel');
+  let mapUrl=null;
+  if(state.status==='hall_transition'&&state.hall_transition?.map_image) mapUrl=state.hall_transition.map_image;
+  else if(state.status==='section_transition'&&state.section_transition?.map_image) mapUrl=state.section_transition.map_image;
+  else if(state.current_section?.map_image) mapUrl=state.current_section.map_image;
+  else if(state.current_hall?.map_image) mapUrl=state.current_hall.map_image;
+
+  if(mapUrl) el.innerHTML=`<img class="nav-map" src="${mapUrl}" alt="map">`;
+  else el.innerHTML=`<div class="nav-placeholder">Карта появится после старта</div>`;
 }
 
-/* ══ DASHBOARD NAV ══════════════════════════════════ */
-function enterDashboard() {
-  if (!ws || ws.readyState!==1) connectWS();
-  showCtrl('waiting');
-  go('s-dashboard');
+function updateActionBar(){
+  const bar=document.getElementById('action-bar');
+  document.getElementById('tech-stop-banner').style.display=state.is_technical_stop?'block':'none';
+
+  if(state.status==='waiting'){
+    bar.innerHTML=`<button class="action-full-gold" onclick="startTour()">Начать тур</button>`;
+    return;
+  }
+  if(state.status==='finished'){
+    bar.innerHTML=`<span class="timer-label" style="color:#f59e0b">Окончание тура:</span><div class="timer-value red">${fmt(0)}</div>`;
+    return;
+  }
+  if(state.status==='in_progress'){
+    bar.innerHTML=`
+      <span class="timer-label">Таймер раздела:</span>
+      <div class="timer-value green" id="t-timer">${fmt(secRemain)}</div>
+      <div class="timer-adjust">
+        <button class="btn btn-icon" onclick="adjustTime('section',-60)">−</button>
+        <button class="btn btn-icon" onclick="adjustTime('section',60)">+</button>
+      </div>
+      <button class="btn btn-ghost-gold" onclick="prevSection()">← Пред.</button>
+      <button class="btn btn-gold" onclick="nextSection()">След. →</button>`;
+    return;
+  }
+  if(state.status==='on_break'){
+    const label=state.is_auto_break?'Перерыв:':(state.is_technical_stop?'Остановка:':'Перерыв:');
+    const cls=state.is_technical_stop?'red':(state.is_auto_break?'orange':'orange');
+    const value=state.is_auto_break?breakRemain:(state.timer?.section_remaining_seconds||0);
+    const valueStr=state.is_auto_break?fmt(breakRemain):fmt(value);
+    bar.innerHTML=`
+      <span class="timer-label">${label}</span>
+      <div class="timer-value ${cls}" id="t-timer">${valueStr}</div>
+      <div class="timer-adjust">
+        <button class="btn btn-icon" onclick="adjustTime('${state.is_auto_break?'break':'section'}',-60)">−</button>
+        <button class="btn btn-icon" onclick="adjustTime('${state.is_auto_break?'break':'section'}',60)">+</button>
+      </div>
+      <button class="btn btn-ghost-gold" onclick="resumeTour()">▶ Продолжить</button>`;
+    return;
+  }
+  if(state.status==='section_transition'||state.status==='hall_transition'){
+    const label=state.status==='hall_transition'?'Таймер перехода (зал):':'Таймер перехода:';
+    const ended=breakRemain<=0;
+    const btnLabel=ended?'▶ Продолжить':'⏭ Пропустить';
+    const btnClass=ended?'btn btn-gold':'btn btn-ghost-gold';
+    bar.innerHTML=`
+      <span class="timer-label">${ended?'<b style="color:var(--gold)">Ожидание подтверждения</b>':label}</span>
+      <div class="timer-value red" id="t-timer">${fmt(breakRemain)}</div>
+      <div class="timer-adjust">
+        <button class="btn btn-icon" onclick="adjustTime('break',-60)">−</button>
+        <button class="btn btn-icon" onclick="adjustTime('break',60)">+</button>
+      </div>
+      <button class="${btnClass}" onclick="resumeTour()">${btnLabel}</button>`;
+    // Show transition modal
+    showTransitionModal();
+    return;
+  }
 }
 
-/* ══ TOURISTS PANEL ═════════════════════════════════ */
-function toggleTP() { document.getElementById('tp-overlay').classList.toggle('open'); }
-function closeTPOutside(e) { if(e.target===document.getElementById('tp-overlay')) document.getElementById('tp-overlay').classList.remove('open'); }
+function showTransitionModal(){
+  const isHall=state.status==='hall_transition';
+  document.getElementById('mt-title').textContent=isHall?'Переход между залами':'Переход между разделами';
+  document.getElementById('mt-subtitle').textContent=isHall?'Переход в следующий зал':'Переход на следующий раздел, запустит новый видео-ряд';
+  // Don't open automatically — let user trigger via action bar. But show info.
+  // Actually the design shows it appears automatically — let's open it.
+  if(!document.getElementById('m-transition').classList.contains('active'))
+    openModal('m-transition');
+}
 
-/* ══ ENTER KEY ══════════════════════════════════════ */
-document.addEventListener('keydown', e => {
-  if (e.key==='Enter' && document.getElementById('s-login').classList.contains('active')) doLogin();
-});
+/* ════ TIMERS ════ */
+function startTimer(){
+  stopTimer();updateTimerDisplay();
+  timerIv=setInterval(()=>{
+    secRemain=Math.max(0,secRemain-1);
+    updateTimerDisplay();
+    if(secRemain<=0)stopTimer();
+  },1000);
+}
+function stopTimer(){if(timerIv){clearInterval(timerIv);timerIv=null;}}
+function updateTimerDisplay(){const el=document.getElementById('t-timer');if(el)el.textContent=fmt(secRemain);}
+
+function startBreakTimer(){
+  stopBreakTimer();updateBreakDisplay();
+  breakIv=setInterval(()=>{
+    breakRemain=Math.max(0,breakRemain-1);
+    updateBreakDisplay();
+    if(breakRemain<=0){
+      stopBreakTimer();
+      // При окончании перехода — перерендерим action bar чтобы показать "Продолжить"
+      if(state.status==='section_transition'||state.status==='hall_transition')updateActionBar();
+    }
+  },1000);
+}
+function stopBreakTimer(){if(breakIv){clearInterval(breakIv);breakIv=null;}}
+function updateBreakDisplay(){const el=document.getElementById('t-timer');if(el)el.textContent=fmt(breakRemain);}
+
+function startTourTimer(){stopTourTimer();tourTimerIv=setInterval(()=>{tourElapsed++;updateTourTimer();},1000);}
+function stopTourTimer(){if(tourTimerIv){clearInterval(tourTimerIv);tourTimerIv=null;}}
+function updateTourTimer(){
+  const rem=state.total_remaining||0;
+  const el=document.getElementById('dh-tour-time');
+  if(el)el.textContent=`${fmtH(state.total_tour-rem)} / ${fmtH(state.total_tour)}`;
+}
+
+/* ════ FINISH ════ */
+function onTourFinished(){
+  stopTimer();stopBreakTimer();stopTourTimer();
+  state.status='finished';setStatusBadge('finished');
+  updateActionBar();
+  toast('Тур завершён','success');
+  // Return to login after short delay
+  setTimeout(()=>{
+    tourists=[];sections=[];
+    go('s-lobby');
+    SESSION_ID=null;JWT=null;
+    setTimeout(()=>go('s-login'),500);
+  },2500);
+}
+
+/* ════ ROUTE FULL PAGE ════ */
+async function loadRouteFull(){
+  const el=document.getElementById('route-full');
+  el.innerHTML=`<div style="padding:20px;color:var(--muted);text-align:center">Загрузка...</div>`;
+  try{
+    const r=await fetch(API('/guide/media-bundle/'));
+    const d=await r.json();
+    halls=d.halls||[];
+    let idx=0;
+    el.innerHTML=halls.map(h=>{
+      const hallTotal=(h.sections||[]).reduce((a,s)=>a+(s.duration_seconds||0)+(s.break_duration_seconds||0),0);
+      const secsHtml=(h.sections||[]).map(s=>{
+        idx++;const active=s.id===state.current_section?.id;
+        return `<div class="route-item ${active?'r-active':''}">
+          <div class="r-num">${String(idx).padStart(2,'0')}</div>
+          <div class="r-info">
+            <div class="r-hall">Зал: ${h.name}</div>
+            <div class="r-name">Раздел: ${s.name||'—'}</div>
+          </div>
+          <div class="r-dur">${fmtH(s.duration_seconds||0)}</div>
+        </div>`;
+      }).join('');
+      return `<div class="hall-divider"><span>Зал: ${h.name}</span><span>${fmtH(hallTotal)}</span></div>
+              <div style="background:var(--card);border-radius:var(--radius);overflow:hidden">${secsHtml}</div>`;
+    }).join('');
+    if(!halls.length) el.innerHTML=`<div style="padding:20px;color:var(--muted);text-align:center">Нет данных</div>`;
+  }catch{el.innerHTML=`<div style="padding:20px;color:var(--red);text-align:center">Ошибка загрузки</div>`;}
+}
+
+/* ════ SCREEN HOOKS ════ */
+const _go=go;
+go=function(id){_go(id);if(id==='s-route')loadRouteFull();};
+
+/* tick to keep dh-tour-time updated */
+setInterval(()=>{
+  if(state.status==='in_progress'||state.status==='on_break'||state.status==='section_transition'||state.status==='hall_transition'){
+    if(!state.is_technical_stop){
+      state.total_remaining=Math.max(0,state.total_remaining-1);
+      updateTourTimer();
+    }
+  }
+},1000);
+
+/* Auto-close transition modal when status changes */
+function closeTransitionModalIfNeeded(){
+  if(state.status!=='section_transition'&&state.status!=='hall_transition'){
+    closeModal('m-transition');
+  }
+}
+// Hook into status changes
+const _applyTourInfo = applyTourInfo;
+applyTourInfo = function(d){_applyTourInfo(d);closeTransitionModalIfNeeded();};
 </script>
 </body>
 </html>
