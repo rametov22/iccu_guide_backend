@@ -36,6 +36,7 @@ class Section(models.Model):
     duration_seconds = models.PositiveIntegerField(
         default=600,
         verbose_name=_("Длительность (секунд)"),
+        help_text=_("Фолбэк. Если есть видео гида — берётся max(длительность видео) + 1"),
     )
 
     break_duration_seconds = models.PositiveIntegerField(
@@ -75,3 +76,13 @@ class Section(models.Model):
 
     def __str__(self):
         return f"{self.hall.name} → {self.name}"
+
+    @property
+    def effective_duration_seconds(self):
+        """Длительность раздела: max длительности видео гидов + 1 сек,
+        либо duration_seconds если видео гида нет."""
+        agg = self.guide_videos.aggregate(m=models.Max("duration_seconds"))
+        max_gv = agg.get("m") or 0
+        if max_gv > 0:
+            return max_gv + 1
+        return self.duration_seconds
