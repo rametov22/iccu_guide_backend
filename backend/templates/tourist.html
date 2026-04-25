@@ -604,7 +604,6 @@ let state = {
   guideVideoIndex: 0,
   sectionTransition: null,
   hallTransition: null,
-  exhibitsVideo: null,
   isAutoBreak: false,
   isTechnicalStop: false,
   totalTour: 0,
@@ -833,7 +832,6 @@ function applyTourInfo(d){
   state.guideVideos=d.guide_videos||[];
   state.sectionTransition=d.section_transition;
   state.hallTransition=d.hall_transition;
-  state.exhibitsVideo=d.exhibits_video;
   state.isAutoBreak=!!d.is_auto_break;
   state.isTechnicalStop=!!d.is_technical_stop;
   state.totalTour=d.total_tour_seconds||0;
@@ -895,7 +893,6 @@ function renderContent(){
         ${state.hallTransition.map_image?`<img src="${state.hallTransition.map_image}" class="transition-map" alt="map">`:''}
         <div class="transition-note">Следуйте за специалистом или по метке на карте</div>
         ${waitingHint}
-        ${state.hallTransition.video?`<video src="${state.hallTransition.video}" autoplay loop muted style="max-width:100%;margin-top:14px;border-radius:var(--radius)"></video>`:''}
       </div>`;
     return;
   }
@@ -907,7 +904,6 @@ function renderContent(){
         ${state.sectionTransition.map_image?`<img src="${state.sectionTransition.map_image}" class="transition-map" alt="map">`:''}
         <div class="transition-note">Следуйте за специалистом</div>
         ${waitingHint}
-        ${state.sectionTransition.video?`<video src="${state.sectionTransition.video}" autoplay loop muted style="max-width:100%;margin-top:14px;border-radius:var(--radius)"></video>`:''}
       </div>`;
     return;
   }
@@ -1015,27 +1011,10 @@ function switchView(v){
 /* ════ Guide video playback ═══ */
 function renderGuideVideo(){
   const v=document.getElementById('guide-video');
-  const a=document.getElementById('exhibits-audio-bg');
-  const onBreak=state.tourStatus==='on_break'&&state.isAutoBreak;
   const desc=document.getElementById('gv-desc');
 
-  // During auto_break — show/play exhibits_video if present
-  if(onBreak&&state.exhibitsVideo){
-    if(v.src!==state.exhibitsVideo){v.src=state.exhibitsVideo;v.play().catch(()=>{});}
-    return;
-  }
-
-  // During section transition — play transition video if present
-  if(state.tourStatus==='section_transition'&&state.sectionTransition?.video){
-    if(v.src!==state.sectionTransition.video){v.src=state.sectionTransition.video;v.play().catch(()=>{});}
-    return;
-  }
-  if(state.tourStatus==='hall_transition'&&state.hallTransition?.video){
-    if(v.src!==state.hallTransition.video){v.src=state.hallTransition.video;v.play().catch(()=>{});}
-    return;
-  }
-
-  // In progress — first guide video
+  // guide_videos теперь содержит видео под текущий статус
+  // (раздел / переход / экспонаты-в-перерыве)
   const gv=state.guideVideos?.[state.guideVideoIndex];
   if(gv?.video&&v.src!==gv.video){
     v.src=gv.video;v.play().catch(()=>{});

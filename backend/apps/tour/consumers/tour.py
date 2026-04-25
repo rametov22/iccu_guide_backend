@@ -771,7 +771,14 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def _get_tourist_extras(self, current_section, state=None):
-        """Доп. данные для туриста: видео гида текущего раздела + экспонаты + переход."""
+        """Доп. данные для туриста: guide_videos под текущий статус + экспонаты + переход.
+
+        guide_videos — единый массив, содержимое зависит от статуса:
+        - in_progress           → видео гида текущего раздела (несколько по order)
+        - section_transition    → transition_video предыдущего GuideVideo (1 штука)
+        - hall_transition       → GuideHallVideo для текущего зала (1 штука)
+        - on_break + auto_break → exhibits_video гида (1 штука)
+        """
         self._activate_lang()
         from guide.models import Guide, GuideVideo, GuideHallVideo
         from exhibit.models import Exhibit, Section
@@ -780,14 +787,13 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             "guide_videos": [],
             "exhibits": [],
             "section_transition": None,
-            "exhibits_video": None,
         }
 
         section_id = current_section.get("id") if current_section else None
         if not section_id:
             return result
 
-        # Видео гида для текущего раздела + данные о гиде
+        # Гид туриста
         guide_id = None
         guide = None
         if self.tourist_session:
@@ -798,12 +804,6 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             except TouristSession.DoesNotExist:
                 pass
 
-        # Глобальное видео гида для экспонатов (показывается во время auto_break)
-        if guide and guide.exhibits_video:
-            result["exhibits_video"] = self._media_url(guide.exhibits_video)
-
-        # Переход между разделами — берём предыдущий раздел и его карту/время
-        # Не показываем для первого раздела зала (там hall_transition достаточно)
         all_sections = list(
             Section.objects.filter(is_active=True)
             .select_related("hall")
@@ -817,51 +817,63 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                 break
             prev_sec = s
 
+        # Объект section_transition (без video — видео гида теперь в guide_videos)
         if (
             prev_sec
             and current_sec
             and prev_sec.hall_id == current_sec.hall_id
             and prev_sec.transition_seconds > 0
         ):
-            # Видео гида для перехода — из GuideVideo.transition_video предыдущего раздела
-            transition_video_url = None
-            if guide_id:
-                prev_gv = (
-                    GuideVideo.objects.filter(guide_id=guide_id, section_id=prev_sec.id)
-                    .first()
-                )
-                if prev_gv and prev_gv.transition_video:
-                    transition_video_url = self._media_url(prev_gv.transition_video)
             result["section_transition"] = {
                 "from_section": str(current_sec.name),
                 "transition_seconds": prev_sec.transition_seconds,
                 "map_image": self._media_url(prev_sec.map_image),
-                "video": transition_video_url,
             }
 
-        # Видео гида для перехода между залами (если state указывает на hall_transition)
-        if state and state.get("hall_transition") and guide_id and current_sec:
-            try:
-                ghv = GuideHallVideo.objects.get(guide_id=guide_id, hall_id=current_sec.hall_id)
-                if ghv.video:
-                    # Обогащаем hall_transition объект видео гида
-                    hall_trans = dict(state["hall_transition"])
-                    hall_trans["video"] = self._media_url(ghv.video)
-                    result["hall_transition"] = hall_trans
-            except GuideHallVideo.DoesNotExist:
-                pass
+        # Определяем guide_videos в зависимости от статуса
+        status = state.get("status") if state else None
 
-        if guide_id:
-            for gv in (
-                GuideVideo.objects.filter(guide_id=guide_id, section_id=section_id)
-                .order_by("order")
-            ):
+        if status == TourSession.Status.SECTION_TRANSITION and guide_id and prev_sec:
+            prev_gv = GuideVideo.objects.filter(guide_id=guide_id, section_id=prev_sec.id).first()
+            if prev_gv and prev_gv.transition_video:
                 result["guide_videos"].append({
-                    "id": gv.id,
-                    "video": self._media_url(gv.video),
-                    "subtitles": str(gv.subtitles) if gv.subtitles else "",
-                    "order": gv.order,
+                    "id": prev_gv.id,
+                    "video": self._media_url(prev_gv.transition_video),
+                    "subtitles": "",
+                    "order": 0,
                 })
+
+        elif status == TourSession.Status.HALL_TRANSITION and guide_id and current_sec:
+            ghv = GuideHallVideo.objects.filter(guide_id=guide_id, hall_id=current_sec.hall_id).first()
+            if ghv and ghv.video:
+                result["guide_videos"].append({
+                    "id": ghv.id,
+                    "video": self._media_url(ghv.video),
+                    "subtitles": "",
+                    "order": 0,
+                })
+
+        elif status == TourSession.Status.ON_BREAK and state and state.get("is_auto_break") and guide and guide.exhibits_video:
+            result["guide_videos"].append({
+                "id": None,
+                "video": self._media_url(guide.exhibits_video),
+                "subtitles": "",
+                "order": 0,
+            })
+
+        else:
+            # IN_PROGRESS, manual break, etc. — обычные видео раздела
+            if guide_id:
+                for gv in (
+                    GuideVideo.objects.filter(guide_id=guide_id, section_id=section_id)
+                    .order_by("order")
+                ):
+                    result["guide_videos"].append({
+                        "id": gv.id,
+                        "video": self._media_url(gv.video),
+                        "subtitles": str(gv.subtitles) if gv.subtitles else "",
+                        "order": gv.order,
+                    })
 
         # Экспонаты текущего раздела
         for ex in (
