@@ -864,16 +864,18 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                     "order": 0,
                 })
 
-        elif status == TourSession.Status.ON_BREAK and state and state.get("is_auto_break") and guide and guide.exhibits_video:
-            result["guide_videos"].append({
-                "id": None,
-                "video": self._media_url(guide.exhibits_video),
-                "subtitles": "",
-                "order": 0,
-            })
+        elif status == TourSession.Status.ON_BREAK and state and state.get("is_auto_break"):
+            # Auto-break — только exhibits_video (если задано); иначе пусто
+            if guide and guide.exhibits_video:
+                result["guide_videos"].append({
+                    "id": None,
+                    "video": self._media_url(guide.exhibits_video),
+                    "subtitles": "",
+                    "order": 0,
+                })
 
         else:
-            # IN_PROGRESS, manual break, etc. — обычные видео раздела
+            # IN_PROGRESS, manual break, tech stop on section — обычные видео раздела
             if guide_id:
                 for gv in (
                     GuideVideo.objects.filter(guide_id=guide_id, section_id=section_id)
