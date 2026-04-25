@@ -280,8 +280,10 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                     else:
                         if status == TourSession.Status.ON_BREAK:
                             await self._do_advance_or_finish()
-                        # Если адджаст времени перехода ушёл в 0 — просто ждём resume_tour,
-                        # не автопереходим на следующий раздел.
+                        elif status == TourSession.Status.SECTION_TRANSITION:
+                            # Автопереход на следующий раздел
+                            await self._finish_transition()
+                        # HALL_TRANSITION → ждём resume_tour от специалиста
 
         elif action == "get_tour_info":
             info = await self._get_tour_info()
@@ -362,19 +364,28 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
     async def _transition_then_start(self, seconds):
         """Wait for hall/section transition timer to elapse.
 
-        После истечения времени перехода мы НЕ переходим к следующему разделу
-        автоматически — ждём команды resume_tour от специалиста.
-        Просто отсылаем финальный state (break_remaining = 0) и останавливаемся.
+        - section_transition: автоматически переходит на следующий раздел.
+        - hall_transition: НЕ переходит автоматически — ждём resume_tour
+          от специалиста (показываем финальный state с break_remaining=0).
         """
         try:
             await asyncio.sleep(seconds)
-            state = await self._get_session_state()
-            await self.channel_layer.group_send(
-                self.group_name,
-                {"type": "tour.info", **state},
-            )
+            current_status = await self._get_session_status()
+            if current_status == TourSession.Status.SECTION_TRANSITION:
+                await self._finish_transition()
+            else:
+                # HALL_TRANSITION — ждём подтверждения, шлём финальный state
+                state = await self._get_session_state()
+                await self.channel_layer.group_send(
+                    self.group_name,
+                    {"type": "tour.info", **state},
+                )
         except asyncio.CancelledError:
             pass
+
+    @database_sync_to_async
+    def _get_session_status(self):
+        return TourSession.objects.values_list("status", flat=True).get(pk=self.session_id)
 
     async def _finish_transition(self):
         """End hall transition — set IN_PROGRESS and start section timer."""
