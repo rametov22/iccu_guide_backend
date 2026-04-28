@@ -7,11 +7,13 @@ __all__ = ("TouristSessionAdmin", "TourRatingAdmin", "KioskPinAdmin")
 
 @admin.register(TouristSession)
 class TouristSessionAdmin(admin.ModelAdmin):
-    list_display = ("id", "device_token", "device_name", "ip_address", "tour_number", "tour_session", "is_active", "joined_at", "left_at", "created_at")
+    list_display = ("id", "device_token", "device", "device_name", "ip_address", "tour_number", "tour_session", "is_active", "joined_at", "left_at", "created_at")
     list_filter = ("is_active", "tour_session")
     readonly_fields = ("created_at", "joined_at", "left_at")
-    search_fields = ("device_token", "device_name", "ip_address")
-    raw_id_fields = ("tour_session",)
+    search_fields = ("device_token", "device_name", "ip_address",
+                     "device__onesignal_player_id", "device__name")
+    raw_id_fields = ("tour_session", "device")
+    list_select_related = ("device",)
 
 
 @admin.register(TourRating)

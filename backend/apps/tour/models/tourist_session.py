@@ -50,6 +50,16 @@ class TouristSession(models.Model):
         help_text=_("Число от 1 до 600"),
     )
 
+    device = models.ForeignKey(
+        "device.Device",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="tourist_sessions",
+        verbose_name=_("Устройство"),
+        help_text=_("Постоянный iPad (по OneSignal player_id)"),
+    )
+
     device_name = models.CharField(
         max_length=255,
         blank=True,
