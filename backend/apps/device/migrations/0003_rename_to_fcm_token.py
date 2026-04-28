@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("device", "0001_initial"),
+        ("device", "0002_rename_device_devi_device__bb09c8_idx_device_devi_device__5b8e27_idx"),
     ]
 
     operations = [
