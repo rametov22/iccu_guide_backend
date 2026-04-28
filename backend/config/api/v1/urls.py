@@ -50,4 +50,8 @@ urlpatterns += [
         "users/",
         include("users.api.urls"),
     ),
+    path(
+        "devices/",
+        include("device.api.urls"),
+    ),
 ]
