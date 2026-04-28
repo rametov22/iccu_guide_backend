@@ -7,6 +7,7 @@ x-backend-defaults: &backend-defaults
   volumes:
     - django-static:/app/static
     - django-media:/app/media
+    - ./secrets:/app/secrets:ro
   depends_on:
     db:
       condition: service_healthy

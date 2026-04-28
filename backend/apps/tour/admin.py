@@ -11,7 +11,7 @@ class TouristSessionAdmin(admin.ModelAdmin):
     list_filter = ("is_active", "tour_session")
     readonly_fields = ("created_at", "joined_at", "left_at")
     search_fields = ("device_token", "device_name", "ip_address",
-                     "device__onesignal_player_id", "device__name")
+                     "device__fcm_token", "device__name")
     raw_id_fields = ("tour_session", "device")
     list_select_related = ("device",)
 

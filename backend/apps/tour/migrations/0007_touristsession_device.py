@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
             name="device",
             field=models.ForeignKey(
                 blank=True,
-                help_text="Постоянный iPad (по OneSignal player_id)",
+                help_text="Постоянный iPad (по FCM-токену)",
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
                 related_name="tourist_sessions",

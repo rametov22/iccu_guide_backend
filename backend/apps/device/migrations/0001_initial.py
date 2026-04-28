@@ -22,11 +22,11 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "onesignal_player_id",
+                    "fcm_token",
                     models.CharField(
-                        max_length=128,
+                        max_length=512,
                         unique=True,
-                        verbose_name="OneSignal player ID",
+                        verbose_name="FCM token",
                     ),
                 ),
                 (

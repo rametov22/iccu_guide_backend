@@ -1,6 +1,6 @@
 """
 Сигналы: при сохранении любого медиа-объекта (видео гида, экспонат, фото)
-шлём push-уведомление всем устройствам через OneSignal.
+шлём push-уведомление всем устройствам через Firebase Cloud Messaging.
 
 Push отправляется через transaction.on_commit — чтобы не дёргать API,
 если транзакция в итоге будет откачена.
@@ -10,7 +10,6 @@ import logging
 
 from django.db import transaction
 from django.db.models.signals import post_save
-from django.dispatch import receiver
 
 from exhibit.models import Exhibit, ExhibitImage
 from guide.models import Guide, GuideHallVideo, GuideVideo
@@ -24,7 +23,7 @@ PUSH_BODY = "Доступно новое медиа для скачивания"
 
 
 def _notify():
-    log.info("Sending OneSignal media-update push")
+    log.info("Sending FCM media-update push")
     send_push_to_all(
         title=PUSH_TITLE,
         body=PUSH_BODY,

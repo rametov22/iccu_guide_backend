@@ -4,3 +4,4 @@ __pycache__/
 backend/static/
 backend/media/
 *django.mo
+secrets/

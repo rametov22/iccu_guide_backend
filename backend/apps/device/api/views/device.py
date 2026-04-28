@@ -28,10 +28,10 @@ class DeviceRegisterView(APIView):
     """
     POST /api/v1/devices/register/
 
-    Фронт отправляет {onesignal_player_id, name?} при первом запуске.
-    Если устройство с таким player_id уже есть — обновляет name и
+    Фронт отправляет {fcm_token, name?} при первом запуске.
+    Если устройство с таким fcm_token уже есть — обновляет name и
     last_seen_at, статусы файлов остаются прежними. Если приложение
-    переустановили, OneSignal выдаёт новый player_id → создаётся новая
+    переустановили, Firebase выдаёт новый токен → создаётся новая
     запись Device, статусы скачивания «обнуляются» сами по себе.
     """
 
@@ -42,11 +42,11 @@ class DeviceRegisterView(APIView):
         serializer = DeviceRegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        player_id = serializer.validated_data["onesignal_player_id"]
+        fcm_token = serializer.validated_data["fcm_token"]
         name = serializer.validated_data.get("name", "")
 
         device, created = Device.objects.get_or_create(
-            onesignal_player_id=player_id,
+            fcm_token=fcm_token,
             defaults={"name": name},
         )
         if not created:

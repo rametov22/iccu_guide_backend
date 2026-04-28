@@ -57,7 +57,7 @@ class TouristSession(models.Model):
         blank=True,
         related_name="tourist_sessions",
         verbose_name=_("Устройство"),
-        help_text=_("Постоянный iPad (по OneSignal player_id)"),
+        help_text=_("Постоянный iPad (по FCM-токену)"),
     )
 
     device_name = models.CharField(

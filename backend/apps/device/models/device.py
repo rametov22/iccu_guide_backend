@@ -6,19 +6,19 @@ __all__ = ("Device", "DeviceFileState")
 
 class Device(models.Model):
     """
-    Устройство (iPad) с подпиской на OneSignal.
+    Устройство (iPad) с подпиской на Firebase Cloud Messaging.
 
     Создаётся при первом запуске приложения: фронт получает
-    onesignal_player_id из OneSignal SDK и шлёт его на
+    FCM-токен через firebase_messaging и шлёт его на
     POST /api/v1/devices/register/. Если приложение переустановили —
-    придёт новый player_id, появится новая запись Device, и статус
+    Firebase выдаёт новый токен, появится новая запись Device, и статус
     скачивания media сбросится сам.
     """
 
-    onesignal_player_id = models.CharField(
-        max_length=128,
+    fcm_token = models.CharField(
+        max_length=512,
         unique=True,
-        verbose_name=_("OneSignal player ID"),
+        verbose_name=_("FCM token"),
     )
 
     name = models.CharField(
@@ -48,7 +48,7 @@ class Device(models.Model):
         ordering = ["-last_seen_at"]
 
     def __str__(self):
-        label = self.name or self.onesignal_player_id[:12]
+        label = self.name or self.fcm_token[:12]
         return f"Device #{self.pk} · {label}"
 
 

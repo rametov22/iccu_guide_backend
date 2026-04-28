@@ -25,7 +25,7 @@ class TouristRegisterView(APIView):
     Турист нажал «продолжить» после правил.
     Создаёт TouristSession с уникальным device_token.
 
-    Если фронт прислал onesignal_player_id — привязывает TouristSession к
+    Если фронт прислал fcm_token — привязывает TouristSession к
     постоянному iPad-устройству (Device). Если такого Device ещё нет —
     создаёт его, чтобы статистика по iPad'у не терялась.
     """
@@ -40,13 +40,13 @@ class TouristRegisterView(APIView):
             or request.META.get("REMOTE_ADDR")
         )
         device_name = (request.data.get("device_name") or "").strip()
-        player_id = (request.data.get("onesignal_player_id") or "").strip()
+        fcm_token = (request.data.get("fcm_token") or "").strip()
 
         device = None
-        if player_id:
+        if fcm_token:
             from device.models import Device
             device, _ = Device.objects.get_or_create(
-                onesignal_player_id=player_id,
+                fcm_token=fcm_token,
                 defaults={"name": device_name},
             )
 

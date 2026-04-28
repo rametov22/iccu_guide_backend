@@ -14,14 +14,14 @@ __all__ = (
 class DeviceRegisterSerializer(serializers.Serializer):
     """Вход POST /devices/register/."""
 
-    onesignal_player_id = serializers.CharField(max_length=128)
+    fcm_token = serializers.CharField(max_length=512)
     name = serializers.CharField(max_length=64, required=False, allow_blank=True, default="")
 
 
 class DeviceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Device
-        fields = ("id", "onesignal_player_id", "name", "is_active",
+        fields = ("id", "fcm_token", "name", "is_active",
                   "last_seen_at", "created_at")
         read_only_fields = fields
 
@@ -54,7 +54,7 @@ class DeviceAdminSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Device
-        fields = ("id", "onesignal_player_id", "name", "is_active",
+        fields = ("id", "fcm_token", "name", "is_active",
                   "last_seen_at", "created_at",
                   "files_total", "files_done", "files_error", "files_pending")
         read_only_fields = fields

@@ -3,7 +3,7 @@ from django.db.models import Count, Q
 from django.utils.html import format_html
 
 from ..models import Device, DeviceFileState
-from ..services import send_push_to_player_ids
+from ..services import send_push_to_tokens
 
 __all__ = ("DeviceAdmin", "DeviceFileStateAdmin")
 
@@ -19,11 +19,11 @@ class DeviceFileStateInline(admin.TabularInline):
 
 @admin.register(Device)
 class DeviceAdmin(admin.ModelAdmin):
-    list_display = ("id", "name_or_player", "is_active", "files_summary",
+    list_display = ("id", "name_or_token", "is_active", "files_summary",
                     "last_seen_at", "created_at")
     list_filter = ("is_active",)
-    search_fields = ("name", "onesignal_player_id")
-    readonly_fields = ("onesignal_player_id", "last_seen_at", "created_at")
+    search_fields = ("name", "fcm_token")
+    readonly_fields = ("fcm_token", "last_seen_at", "created_at")
     actions = ("send_test_push",)
     inlines = [DeviceFileStateInline]
 
@@ -34,9 +34,9 @@ class DeviceAdmin(admin.ModelAdmin):
             _err=Count("file_states", filter=Q(file_states__status=DeviceFileState.Status.ERROR)),
         )
 
-    def name_or_player(self, obj):
-        return obj.name or obj.onesignal_player_id[:12]
-    name_or_player.short_description = "Имя"
+    def name_or_token(self, obj):
+        return obj.name or obj.fcm_token[:12]
+    name_or_token.short_description = "Имя"
 
     def files_summary(self, obj):
         total = getattr(obj, "_total", 0)
@@ -54,14 +54,19 @@ class DeviceAdmin(admin.ModelAdmin):
 
     @admin.action(description="Отправить тестовый push")
     def send_test_push(self, request, queryset):
-        ids = list(queryset.values_list("onesignal_player_id", flat=True))
-        send_push_to_player_ids(
-            ids,
+        tokens = list(queryset.values_list("fcm_token", flat=True))
+        result = send_push_to_tokens(
+            tokens,
             title="Тест",
             body="Это тестовое уведомление",
             data={"action": "test"},
         )
-        self.message_user(request, f"Отправлено на {len(ids)} устройств")
+        ok = result.get("success_count", 0) if result else 0
+        fail = result.get("failure_count", 0) if result else 0
+        self.message_user(
+            request,
+            f"Отправлено: {ok} из {len(tokens)}, ошибок: {fail}",
+        )
 
 
 @admin.register(DeviceFileState)
@@ -69,7 +74,7 @@ class DeviceFileStateAdmin(admin.ModelAdmin):
     list_display = ("device", "file_url_short", "status", "progress",
                     "file_size", "updated_at")
     list_filter = ("status",)
-    search_fields = ("file_url", "device__name", "device__onesignal_player_id")
+    search_fields = ("file_url", "device__name", "device__fcm_token")
     readonly_fields = ("device", "file_url", "updated_at", "created_at")
 
     def file_url_short(self, obj):
