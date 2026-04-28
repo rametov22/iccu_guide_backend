@@ -79,6 +79,11 @@ def build_manifest(request=None):
         ]
       }
 
+    Манифест дедуплицируется по URL: каждый уникальный URL возвращается
+    ровно один раз. Если один и тот же файл «всплывает» в нескольких kind
+    (например, Section.video и GuideVideo.video указывают на один путь),
+    остаётся первое встреченное вхождение.
+
     kind:
       hall_map / hall_transition_map           — карты залов (без языка)
       section_map                              — карта раздела (без языка)
@@ -90,7 +95,7 @@ def build_manifest(request=None):
       guide_video / guide_transition_video     — видео раздела от гида (3 языка)
       guide_hall_video                         — видео перехода в зал (3 языка)
     """
-    files = []
+    raw = []
 
     halls = (
         Hall.objects.filter(is_active=True)
@@ -104,30 +109,39 @@ def build_manifest(request=None):
     )
 
     for hall in halls:
-        _emit_single(files, "hall_map", hall.id, hall, "map_image", request)
-        _emit_single(files, "hall_transition_map", hall.id, hall, "transition_map_image", request)
+        _emit_single(raw, "hall_map", hall.id, hall, "map_image", request)
+        _emit_single(raw, "hall_transition_map", hall.id, hall, "transition_map_image", request)
 
         for sec in hall.sections.filter(is_active=True).order_by("order"):
-            _emit_single(files, "section_map", sec.id, sec, "map_image", request)
-            _emit_single(files, "section_video", sec.id, sec, "video", request)
+            _emit_single(raw, "section_map", sec.id, sec, "map_image", request)
+            _emit_single(raw, "section_video", sec.id, sec, "video", request)
 
             for ex in sec.exhibits.filter(is_active=True).order_by("order"):
-                _emit_translatable(files, "exhibit_video", ex.id, ex, "video", request)
-                _emit_translatable(files, "exhibit_audio", ex.id, ex, "audio", request)
+                _emit_translatable(raw, "exhibit_video", ex.id, ex, "video", request)
+                _emit_translatable(raw, "exhibit_audio", ex.id, ex, "audio", request)
                 for img in ex.images.all():
-                    _emit_single(files, "exhibit_image", img.id, img, "image", request)
+                    _emit_single(raw, "exhibit_image", img.id, img, "image", request)
 
             for gv in sec.guide_videos.all():
-                _emit_translatable(files, "guide_video", gv.id, gv, "video", request)
-                _emit_translatable(files, "guide_transition_video", gv.id, gv, "transition_video", request)
+                _emit_translatable(raw, "guide_video", gv.id, gv, "video", request)
+                _emit_translatable(raw, "guide_transition_video", gv.id, gv, "transition_video", request)
 
     for ghv in GuideHallVideo.objects.all().select_related("guide", "hall"):
-        _emit_translatable(files, "guide_hall_video", ghv.id, ghv, "video", request)
+        _emit_translatable(raw, "guide_hall_video", ghv.id, ghv, "video", request)
 
     for g in Guide.objects.filter(is_active=True).order_by("order", "name"):
-        _emit_single(files, "guide_thumb", g.id, g, "thumbnail", request)
-        _emit_translatable(files, "guide_preview", g.id, g, "preview_video", request)
-        _emit_translatable(files, "guide_exhibits", g.id, g, "exhibits_video", request)
+        _emit_single(raw, "guide_thumb", g.id, g, "thumbnail", request)
+        _emit_translatable(raw, "guide_preview", g.id, g, "preview_video", request)
+        _emit_translatable(raw, "guide_exhibits", g.id, g, "exhibits_video", request)
+
+    seen = set()
+    files = []
+    for entry in raw:
+        url = entry["url"]
+        if url in seen:
+            continue
+        seen.add(url)
+        files.append(entry)
 
     by_kind = Counter(f["kind"] for f in files)
 
