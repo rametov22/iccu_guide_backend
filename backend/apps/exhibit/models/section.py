@@ -36,7 +36,9 @@ class Section(models.Model):
     duration_seconds = models.PositiveIntegerField(
         default=600,
         verbose_name=_("Длительность (секунд)"),
-        help_text=_("Фолбэк. Если есть видео гида — берётся max(длительность видео) + 1"),
+        help_text=_(
+            "Фолбэк. Если есть видео гида — берётся max(длительность видео) + 1"
+        ),
     )
 
     break_duration_seconds = models.PositiveIntegerField(
@@ -67,6 +69,17 @@ class Section(models.Model):
     is_active = models.BooleanField(
         default=True,
         verbose_name=_("Активен"),
+    )
+
+    # новое
+    is_immersion_room = models.BooleanField(
+        default=False, verbose_name=_("Иммерсивная комната")
+    )
+    immersion_photo = models.ImageField(
+        upload_to="sections/immersion/",
+        blank=True,
+        null=True,
+        verbose_name=_("Фото Иммерсивной комнаты"),
     )
 
     class Meta:

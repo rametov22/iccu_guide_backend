@@ -88,6 +88,7 @@ def build_manifest(request=None):
       hall_map / hall_transition_map           — карты залов (без языка)
       section_map                              — карта раздела (без языка)
       section_video                            — видео раздела (без языка)
+      section_immersion                        — фото иммерсивной комнаты (без языка)
       exhibit_video / exhibit_audio            — медиа экспоната (3 языка)
       exhibit_image                            — фото экспоната (без языка)
       guide_thumb                              — превью-картинка гида
@@ -115,6 +116,7 @@ def build_manifest(request=None):
         for sec in hall.sections.filter(is_active=True).order_by("order"):
             _emit_single(raw, "section_map", sec.id, sec, "map_image", request)
             _emit_single(raw, "section_video", sec.id, sec, "video", request)
+            _emit_single(raw, "section_immersion", sec.id, sec, "immersion_photo", request)
 
             for ex in sec.exhibits.filter(is_active=True).order_by("order"):
                 _emit_translatable(raw, "exhibit_video", ex.id, ex, "video", request)

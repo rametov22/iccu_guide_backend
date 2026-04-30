@@ -5,7 +5,6 @@ from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.conf import settings
 from django.utils import timezone, translation
-
 from specialist.models import TourSession
 from tour.models import TouristSession
 
@@ -70,7 +69,11 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         # Build base URL from WS scope headers
         headers = dict(self.scope.get("headers", []))
         host = headers.get(b"host", b"").decode()
-        scheme = "https" if headers.get(b"x-forwarded-proto", b"").decode() == "https" else "http"
+        scheme = (
+            "https"
+            if headers.get(b"x-forwarded-proto", b"").decode() == "https"
+            else "http"
+        )
         self._base_url = f"{scheme}://{host}" if host else ""
 
         if self.is_specialist:
@@ -109,11 +112,15 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         # Отправляем текущее состояние
         state = await self._get_session_state()
         if not self.is_specialist:
-            tourist_extra = await self._get_tourist_extras(state.get("current_section"), state)
+            tourist_extra = await self._get_tourist_extras(
+                state.get("current_section"), state
+            )
             state.update(tourist_extra)
             if state.get("current_section"):
                 state["current_section"] = {
-                    k: v for k, v in state["current_section"].items() if k != "map_image"
+                    k: v
+                    for k, v in state["current_section"].items()
+                    if k != "map_image"
                 }
         await self.send_json({"type": "tour_info", **state})
 
@@ -231,7 +238,10 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                             self._timer_task = asyncio.ensure_future(
                                 self._break_then_advance(remaining)
                             )
-                        elif status in (TourSession.Status.HALL_TRANSITION, TourSession.Status.SECTION_TRANSITION):
+                        elif status in (
+                            TourSession.Status.HALL_TRANSITION,
+                            TourSession.Status.SECTION_TRANSITION,
+                        ):
                             self._timer_task = asyncio.ensure_future(
                                 self._transition_then_start(remaining)
                             )
@@ -264,7 +274,10 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                         self._start_section_timer(remaining)
                     else:
                         await self._auto_advance_section()
-                elif target == "break" and state.get("break_remaining_seconds") is not None:
+                elif (
+                    target == "break"
+                    and state.get("break_remaining_seconds") is not None
+                ):
                     remaining = state["break_remaining_seconds"]
                     self._cancel_timer()
                     if remaining > 0:
@@ -272,7 +285,10 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                             self._timer_task = asyncio.ensure_future(
                                 self._break_then_advance(remaining)
                             )
-                        elif status in (TourSession.Status.HALL_TRANSITION, TourSession.Status.SECTION_TRANSITION):
+                        elif status in (
+                            TourSession.Status.HALL_TRANSITION,
+                            TourSession.Status.SECTION_TRANSITION,
+                        ):
                             self._timer_task = asyncio.ensure_future(
                                 self._transition_then_start(remaining)
                             )
@@ -469,7 +485,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def _get_session_status(self):
-        return TourSession.objects.values_list("status", flat=True).get(pk=self.session_id)
+        return TourSession.objects.values_list("status", flat=True).get(
+            pk=self.session_id
+        )
 
     async def _finish_transition(self):
         """End hall transition — set IN_PROGRESS and start section timer."""
@@ -484,9 +502,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
     @database_sync_to_async
     def _do_end_transition(self):
-        session = TourSession.objects.select_related(
-            "current_section"
-        ).get(pk=self.session_id)
+        session = TourSession.objects.select_related("current_section").get(
+            pk=self.session_id
+        )
         if session.status not in (
             TourSession.Status.HALL_TRANSITION,
             TourSession.Status.SECTION_TRANSITION,
@@ -558,7 +576,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
     async def tour_info(self, event):
         data = {k: v for k, v in event.items() if k != "type"}
         if not self.is_specialist:
-            tourist_extra = await self._get_tourist_extras(data.get("current_section"), data)
+            tourist_extra = await self._get_tourist_extras(
+                data.get("current_section"), data
+            )
             data.update(tourist_extra)
             # Турист не видит map_image в current_section — он получает её через section_transition
             if data.get("current_section"):
@@ -599,6 +619,7 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         if not sec:
             # Тур ещё не начат — берём первый раздел
             from exhibit.models import Section as SectionModel
+
             sec = (
                 SectionModel.objects.filter(is_active=True)
                 .select_related("hall")
@@ -655,7 +676,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         seen_halls = set()
         total_tour_seconds = 0
         for s in all_sections:
-            total_tour_seconds += s.effective_duration_seconds + s.break_duration_seconds
+            total_tour_seconds += (
+                s.effective_duration_seconds + s.break_duration_seconds
+            )
             if s.hall_id not in seen_halls:
                 seen_halls.add(s.hall_id)
                 total_tour_seconds += s.hall.transition_seconds
@@ -665,12 +688,14 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         if hall_data:
             for s in all_sections:
                 if s.hall_id == hall_data["id"]:
-                    hall_sections.append({
-                        "id": s.id,
-                        "name": str(s.name),
-                        "duration_seconds": s.effective_duration_seconds,
-                        "break_duration_seconds": s.break_duration_seconds,
-                    })
+                    hall_sections.append(
+                        {
+                            "id": s.id,
+                            "name": str(s.name),
+                            "duration_seconds": s.effective_duration_seconds,
+                            "break_duration_seconds": s.break_duration_seconds,
+                        }
+                    )
 
         tourist_count = TouristSession.objects.filter(
             tour_session=session, is_active=True
@@ -684,8 +709,10 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             for i, s in enumerate(all_sections):
                 if s.id == session.current_section_id:
                     current_section_index = i + 1
-                    remaining_sections_count = total_sections_count - current_section_index
-                    is_last_section = (i == len(all_sections) - 1)
+                    remaining_sections_count = (
+                        total_sections_count - current_section_index
+                    )
+                    is_last_section = i == len(all_sections) - 1
                     break
 
         is_auto_break = (
@@ -732,7 +759,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
         return {
             "session_id": session.pk,
-            "specialist_number": session.specialist.number if session.specialist else None,
+            "specialist_number": (
+                session.specialist.number if session.specialist else None
+            ),
             "status": session.status,
             "tourist_count": tourist_count,
             "current_section": section_data,
@@ -786,7 +815,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         if is_transition:
             # Transition: current_section уже next → остаток перехода + полный раздел
             break_remaining = self._calc_break_remaining(session) or 0
-            current_remaining = break_remaining + session.current_section.effective_duration_seconds
+            current_remaining = (
+                break_remaining + session.current_section.effective_duration_seconds
+            )
         elif is_auto_break:
             # Auto-break: current_section — только что завершённый → только остаток перерыва
             break_remaining = self._calc_break_remaining(session) or 0
@@ -819,7 +850,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                     future_seconds += s.hall.transition_seconds
                 elif prev_section.transition_seconds > 0:
                     future_seconds += prev_section.transition_seconds
-                future_seconds += s.effective_duration_seconds + s.break_duration_seconds
+                future_seconds += (
+                    s.effective_duration_seconds + s.break_duration_seconds
+                )
                 prev_section = s
 
         return int(current_remaining + future_seconds)
@@ -838,9 +871,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
     @database_sync_to_async
     def _authenticate_specialist(self, token, session):
         """Проверяет JWT токен и что специалист владеет этой сессией."""
-        from rest_framework_simplejwt.tokens import AccessToken
-        from rest_framework_simplejwt.exceptions import TokenError
         from django.contrib.auth import get_user_model
+        from rest_framework_simplejwt.exceptions import TokenError
+        from rest_framework_simplejwt.tokens import AccessToken
 
         User = get_user_model()
         try:
@@ -875,13 +908,15 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         - on_break + auto_break → exhibits_video гида (1 штука)
         """
         self._activate_lang()
-        from guide.models import Guide, GuideVideo, GuideHallVideo
         from exhibit.models import Exhibit, Section
+        from guide.models import Guide, GuideHallVideo, GuideVideo
 
         result = {
             "guide_videos": [],
             "exhibits": [],
             "section_transition": None,
+            "is_immersion_room": False,
+            "immersion_photo": None,
         }
 
         section_id = current_section.get("id") if current_section else None
@@ -893,7 +928,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         guide = None
         if self.tourist_session:
             try:
-                ts = TouristSession.objects.select_related("guide").get(pk=self.tourist_session.pk)
+                ts = TouristSession.objects.select_related("guide").get(
+                    pk=self.tourist_session.pk
+                )
                 guide_id = ts.guide_id
                 guide = ts.guide
             except TouristSession.DoesNotExist:
@@ -929,17 +966,23 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         status = state.get("status") if state else None
 
         if status == TourSession.Status.SECTION_TRANSITION and guide_id and prev_sec:
-            prev_gv = GuideVideo.objects.filter(guide_id=guide_id, section_id=prev_sec.id).first()
+            prev_gv = GuideVideo.objects.filter(
+                guide_id=guide_id, section_id=prev_sec.id
+            ).first()
             if prev_gv and prev_gv.transition_video:
-                result["guide_videos"].append({
-                    "id": prev_gv.id,
-                    "video": self._media_url(prev_gv.transition_video),
-                    "subtitles": "",
-                    "order": 0,
-                })
+                result["guide_videos"].append(
+                    {
+                        "id": prev_gv.id,
+                        "video": self._media_url(prev_gv.transition_video),
+                        "subtitles": "",
+                        "order": 0,
+                    }
+                )
 
         elif status == TourSession.Status.HALL_TRANSITION and guide_id and current_sec:
-            ghv = GuideHallVideo.objects.filter(guide_id=guide_id, hall_id=current_sec.hall_id).first()
+            ghv = GuideHallVideo.objects.filter(
+                guide_id=guide_id, hall_id=current_sec.hall_id
+            ).first()
             video_field = None
             if ghv:
                 # Активный язык, потом fallback на любой непустой
@@ -948,56 +991,73 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                         video_field = cand
                         break
             if video_field:
-                result["guide_videos"].append({
-                    "id": ghv.id,
-                    "video": self._media_url(video_field),
-                    "subtitles": "",
-                    "order": 0,
-                })
+                result["guide_videos"].append(
+                    {
+                        "id": ghv.id,
+                        "video": self._media_url(video_field),
+                        "subtitles": "",
+                        "order": 0,
+                    }
+                )
 
-        elif status == TourSession.Status.ON_BREAK and state and state.get("is_auto_break"):
+        elif (
+            status == TourSession.Status.ON_BREAK
+            and state
+            and state.get("is_auto_break")
+        ):
             # Auto-break — только exhibits_video (если задано); иначе пусто
             if guide and guide.exhibits_video:
-                result["guide_videos"].append({
-                    "id": None,
-                    "video": self._media_url(guide.exhibits_video),
-                    "subtitles": "",
-                    "order": 0,
-                })
+                result["guide_videos"].append(
+                    {
+                        "id": None,
+                        "video": self._media_url(guide.exhibits_video),
+                        "subtitles": "",
+                        "order": 0,
+                    }
+                )
 
         else:
             # IN_PROGRESS, manual break, tech stop on section — обычные видео раздела
             if guide_id:
-                for gv in (
-                    GuideVideo.objects.filter(guide_id=guide_id, section_id=section_id)
-                    .order_by("order")
-                ):
-                    result["guide_videos"].append({
-                        "id": gv.id,
-                        "video": self._media_url(gv.video),
-                        "subtitles": str(gv.subtitles) if gv.subtitles else "",
-                        "order": gv.order,
-                    })
+                for gv in GuideVideo.objects.filter(
+                    guide_id=guide_id, section_id=section_id
+                ).order_by("order"):
+                    result["guide_videos"].append(
+                        {
+                            "id": gv.id,
+                            "video": self._media_url(gv.video),
+                            "subtitles": str(gv.subtitles) if gv.subtitles else "",
+                            "order": gv.order,
+                        }
+                    )
 
-        # Экспонаты текущего раздела
-        for ex in (
-            Exhibit.objects.filter(section_id=section_id, is_active=True)
-            .prefetch_related("images")
-            .order_by("order", "title")
-        ):
-            images = [self._media_url(img.image) for img in ex.images.all()]
-            result["exhibits"].append({
-                "id": ex.id,
-                "title": str(ex.title) if ex.title else "",
-                "description": str(ex.description) if ex.description else "",
-                "video": self._media_url(ex.video),
-                "audio": self._media_url(ex.audio),
-                "images": images,
-                "has_video": bool(ex.video),
-                "has_audio": bool(ex.audio),
-                "has_photos": bool(images),
-                "order": ex.order,
-            })
+        # Экспонаты текущего раздела.
+        # Иммерсивная комната подменяет ленту экспонатов на одно фото:
+        # отдаём is_immersion_room/immersion_photo, exhibits остаётся пустым.
+        if current_sec and current_sec.is_immersion_room:
+            result["is_immersion_room"] = True
+            result["immersion_photo"] = self._media_url(current_sec.immersion_photo)
+        else:
+            for ex in (
+                Exhibit.objects.filter(section_id=section_id, is_active=True)
+                .prefetch_related("images")
+                .order_by("order", "title")
+            ):
+                images = [self._media_url(img.image) for img in ex.images.all()]
+                result["exhibits"].append(
+                    {
+                        "id": ex.id,
+                        "title": str(ex.title) if ex.title else "",
+                        "description": str(ex.description) if ex.description else "",
+                        "video": self._media_url(ex.video),
+                        "audio": self._media_url(ex.audio),
+                        "images": images,
+                        "has_video": bool(ex.video),
+                        "has_audio": bool(ex.audio),
+                        "has_photos": bool(images),
+                        "order": ex.order,
+                    }
+                )
 
         return result
 
@@ -1346,7 +1406,12 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         session.section_started_at = timezone.now()
         session.is_technical_stop = False
         session.save(
-            update_fields=["status", "break_remaining_seconds", "section_started_at", "is_technical_stop"]
+            update_fields=[
+                "status",
+                "break_remaining_seconds",
+                "section_started_at",
+                "is_technical_stop",
+            ]
         )
 
     @database_sync_to_async
@@ -1370,7 +1435,11 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             TourSession.Status.SECTION_TRANSITION,
         ):
             # Пропуск активного перехода → сразу IN_PROGRESS
-            duration = session.current_section.effective_duration_seconds if session.current_section else 0
+            duration = (
+                session.current_section.effective_duration_seconds
+                if session.current_section
+                else 0
+            )
             session.status = TourSession.Status.IN_PROGRESS
             session.section_started_at = now
             session.break_remaining_seconds = None
@@ -1378,8 +1447,10 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             session.is_technical_stop = False
             session.save(
                 update_fields=[
-                    "status", "section_started_at",
-                    "break_remaining_seconds", "paused_remaining_seconds",
+                    "status",
+                    "section_started_at",
+                    "break_remaining_seconds",
+                    "paused_remaining_seconds",
                     "is_technical_stop",
                 ]
             )
@@ -1388,7 +1459,11 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
         elif current_status == TourSession.Status.ON_BREAK:
 
-            if session.is_technical_stop and session.break_remaining_seconds is not None and session.break_remaining_seconds > 0:
+            if (
+                session.is_technical_stop
+                and session.break_remaining_seconds is not None
+                and session.break_remaining_seconds > 0
+            ):
                 # Тех. остановка во время перерыва/перехода → возобновляем в pre_stop_status
                 remaining = session.break_remaining_seconds
                 restore_status = session.pre_stop_status or TourSession.Status.ON_BREAK
@@ -1397,18 +1472,30 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                 session.is_technical_stop = False
                 session.pre_stop_status = None
                 session.save(
-                    update_fields=["status", "section_started_at", "is_technical_stop", "pre_stop_status"]
+                    update_fields=[
+                        "status",
+                        "section_started_at",
+                        "is_technical_stop",
+                        "pre_stop_status",
+                    ]
                 )
                 state = self._build_state_dict(session)
                 return "break", remaining, state
 
-            elif not session.is_technical_stop and session.break_remaining_seconds is not None:
+            elif (
+                not session.is_technical_stop
+                and session.break_remaining_seconds is not None
+            ):
                 # Пропуск авто-перерыва → advance
                 session.break_remaining_seconds = None
                 session.paused_remaining_seconds = None
                 session.is_technical_stop = False
                 session.save(
-                    update_fields=["break_remaining_seconds", "paused_remaining_seconds", "is_technical_stop"]
+                    update_fields=[
+                        "break_remaining_seconds",
+                        "paused_remaining_seconds",
+                        "is_technical_stop",
+                    ]
                 )
                 return "advance", 0, None
 
@@ -1428,9 +1515,12 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                 session.pre_stop_status = None
                 session.save(
                     update_fields=[
-                        "status", "section_started_at",
-                        "paused_remaining_seconds", "break_remaining_seconds",
-                        "is_technical_stop", "pre_stop_status",
+                        "status",
+                        "section_started_at",
+                        "paused_remaining_seconds",
+                        "break_remaining_seconds",
+                        "is_technical_stop",
+                        "pre_stop_status",
                     ]
                 )
                 state = self._build_state_dict(session)
@@ -1454,12 +1544,20 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
             return None
 
         if target == "section":
-            if session.status == TourSession.Status.IN_PROGRESS and session.section_started_at:
+            if (
+                session.status == TourSession.Status.IN_PROGRESS
+                and session.section_started_at
+            ):
                 # +60 = добавить 60 сек к remaining → started сдвигается вперёд
                 session.section_started_at += timedelta(seconds=delta_seconds)
                 session.save(update_fields=["section_started_at"])
-            elif session.status == TourSession.Status.ON_BREAK and session.paused_remaining_seconds is not None:
-                session.paused_remaining_seconds = max(1, session.paused_remaining_seconds + delta_seconds)
+            elif (
+                session.status == TourSession.Status.ON_BREAK
+                and session.paused_remaining_seconds is not None
+            ):
+                session.paused_remaining_seconds = max(
+                    1, session.paused_remaining_seconds + delta_seconds
+                )
                 session.save(update_fields=["paused_remaining_seconds"])
 
         elif target == "break":
@@ -1467,13 +1565,17 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                 # Считаем реальный остаток с учётом прошедшего времени
                 elapsed = 0
                 if session.section_started_at:
-                    elapsed = (timezone.now() - session.section_started_at).total_seconds()
+                    elapsed = (
+                        timezone.now() - session.section_started_at
+                    ).total_seconds()
                 actual_remaining = max(0, session.break_remaining_seconds - elapsed)
                 new_remaining = max(0, int(actual_remaining + delta_seconds))
                 now = timezone.now()
                 session.break_remaining_seconds = new_remaining
                 session.section_started_at = now
-                session.save(update_fields=["break_remaining_seconds", "section_started_at"])
+                session.save(
+                    update_fields=["break_remaining_seconds", "section_started_at"]
+                )
 
         # Re-fetch and build state
         session = TourSession.objects.select_related(
@@ -1491,9 +1593,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
         # Деактивируем всех туристов этой сессии — их токены освобождаются,
         # и их нельзя будет снова добавить в новый тур без повторной регистрации.
-        TouristSession.objects.filter(
-            tour_session=session, is_active=True
-        ).update(is_active=False, left_at=now)
+        TouristSession.objects.filter(tour_session=session, is_active=True).update(
+            is_active=False, left_at=now
+        )
 
     @database_sync_to_async
     def _do_kick_tourist(self, tourist_id):
