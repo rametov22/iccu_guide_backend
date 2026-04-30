@@ -118,10 +118,9 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
         await self.send_json({"type": "tour_info", **state})
 
         # Специалист переподключается к активному туру — перезапускаем таймер
-        if self.is_specialist and session.status == TourSession.Status.IN_PROGRESS:
-            remaining = await self._calculate_remaining_seconds()
-            if remaining and remaining > 0:
-                self._start_section_timer(remaining)
+        # под текущий статус, чтобы тур продолжался (а не замирал).
+        if self.is_specialist:
+            await self._resume_timer_for_current_status()
 
     async def disconnect(self, close_code):
         if self._timer_task:
@@ -295,6 +294,91 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
                 await self._kick_tourist(tourist_id)
 
     # ── Timer management ──────────────────────────────────────
+
+    async def _resume_timer_for_current_status(self):
+        """При reconnect специалиста: пересоздаём таймер по актуальному состоянию в БД.
+
+        - IN_PROGRESS         → секционный таймер на остаток. Если остатка нет → авто-переход.
+        - ON_BREAK + auto     → таймер `_break_then_advance` на остаток перерыва. Если 0 → advance.
+        - SECTION_TRANSITION  → таймер перехода. Если 0 → авто-переход к следующему разделу.
+        - HALL_TRANSITION     → таймер перехода (по таймауту шлёт финальный state, ждёт resume).
+        - ON_BREAK ручной/тех → таймера нет, ждём resume_tour от специалиста.
+        """
+        info = await self._get_resume_info()
+        if not info:
+            return
+        status = info["status"]
+        remaining = info["remaining"]
+
+        if status == TourSession.Status.IN_PROGRESS:
+            if remaining > 0:
+                self._start_section_timer(remaining)
+            else:
+                await self._auto_advance_section()
+
+        elif status == TourSession.Status.ON_BREAK and info["is_auto_break"]:
+            if remaining > 0:
+                self._timer_task = asyncio.ensure_future(
+                    self._break_then_advance(remaining)
+                )
+            else:
+                await self._do_advance_or_finish()
+
+        elif status == TourSession.Status.SECTION_TRANSITION:
+            if remaining > 0:
+                self._timer_task = asyncio.ensure_future(
+                    self._transition_then_start(remaining)
+                )
+            else:
+                await self._finish_transition()
+
+        elif status == TourSession.Status.HALL_TRANSITION:
+            if remaining > 0:
+                self._timer_task = asyncio.ensure_future(
+                    self._transition_then_start(remaining)
+                )
+            # remaining == 0 → переход уже отыграл, ждём resume_tour
+
+    @database_sync_to_async
+    def _get_resume_info(self):
+        """Возвращает {status, remaining, is_auto_break} для перезапуска таймера."""
+        try:
+            session = TourSession.objects.select_related("current_section").get(
+                pk=self.session_id
+            )
+        except TourSession.DoesNotExist:
+            return None
+
+        status = session.status
+        remaining = 0
+        is_auto_break = False
+
+        if status == TourSession.Status.IN_PROGRESS:
+            if session.section_started_at and session.current_section:
+                elapsed = (timezone.now() - session.section_started_at).total_seconds()
+                total = session.current_section.effective_duration_seconds
+                remaining = max(0, int(total - elapsed))
+
+        elif status in (
+            TourSession.Status.HALL_TRANSITION,
+            TourSession.Status.SECTION_TRANSITION,
+        ):
+            remaining = self._calc_break_remaining(session) or 0
+
+        elif status == TourSession.Status.ON_BREAK:
+            is_auto_break = (
+                session.paused_remaining_seconds is None
+                and session.break_remaining_seconds is not None
+                and not session.is_technical_stop
+            )
+            if is_auto_break:
+                remaining = self._calc_break_remaining(session) or 0
+
+        return {
+            "status": status,
+            "remaining": remaining,
+            "is_auto_break": is_auto_break,
+        }
 
     def _start_section_timer(self, seconds):
         self._cancel_timer()
@@ -856,10 +940,17 @@ class TourConsumer(AsyncJsonWebsocketConsumer):
 
         elif status == TourSession.Status.HALL_TRANSITION and guide_id and current_sec:
             ghv = GuideHallVideo.objects.filter(guide_id=guide_id, hall_id=current_sec.hall_id).first()
-            if ghv and ghv.video:
+            video_field = None
+            if ghv:
+                # Активный язык, потом fallback на любой непустой
+                for cand in (ghv.video, ghv.video_ru, ghv.video_en, ghv.video_uz):
+                    if cand:
+                        video_field = cand
+                        break
+            if video_field:
                 result["guide_videos"].append({
                     "id": ghv.id,
-                    "video": self._media_url(ghv.video),
+                    "video": self._media_url(video_field),
                     "subtitles": "",
                     "order": 0,
                 })
