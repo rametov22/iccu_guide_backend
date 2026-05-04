@@ -1,6 +1,7 @@
 from django.contrib import admin
 import os
 from django import forms
+from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from django.utils.html import format_html
 from modeltranslation.admin import TabbedTranslationAdmin, TranslationTabularInline
