@@ -15,7 +15,11 @@ class TourRatingCreateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         device_token = attrs.pop("device_token")
         try:
-            tourist = TouristSession.objects.get(device_token=device_token)
+            tourist = (
+                TouristSession.objects.filter(device_token=device_token)
+                .order_by("-created_at")
+                .first()
+            )
         except TouristSession.DoesNotExist:
             raise serializers.ValidationError({"device_token": "Токен не найден"})
 
