@@ -8,7 +8,8 @@ Migration steps:
 4. Link existing Exhibits to their new Sections
 5. Make section FK non-nullable
 6. Remove old location FK from Exhibit
-7. Delete Location table
+7. Location is deleted in 0003 after specialist.TourSession.current_location
+   has been removed by specialist.0004.
 """
 
 from django.db import migrations, models
@@ -156,9 +157,5 @@ class Migration(migrations.Migration):
                 to="exhibit.section",
                 verbose_name="Раздел",
             ),
-        ),
-        # 7. Delete Location table
-        migrations.DeleteModel(
-            name="Location",
         ),
     ]

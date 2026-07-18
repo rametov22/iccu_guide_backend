@@ -1,4 +1,3 @@
-from decouple import config
 from django.apps import apps
 from django.conf import settings
 from django.conf.urls.i18n import i18n_patterns
@@ -30,12 +29,8 @@ urlpatterns = [
         lambda request: JsonResponse({"status": "ok"}),
         name="healthcheck",
     ),
-    path(
-        "ws-test/", TemplateView.as_view(template_name="ws_test.html"), name="ws-test"
-    ),
-    path(
-        "tourist/", TemplateView.as_view(template_name="tourist.html"), name="tourist"
-    ),
+    path("ws-test/", TemplateView.as_view(template_name="ws_test.html"), name="ws-test"),
+    path("tourist/", TemplateView.as_view(template_name="tourist.html"), name="tourist"),
     path("martor/", include("martor.urls")),
     # i18n endpoints (used by Unfold for language switcher, name: `set_language`)
     path("i18n/", include("django.conf.urls.i18n")),
@@ -48,14 +43,12 @@ urlpatterns += i18n_patterns(
 )
 
 
-if not config("PRODUCTION", cast=bool, default=True):
+if settings.ENVIRONMENT == "dev":
     from debug_toolbar.toolbar import debug_toolbar_urls
 
     urlpatterns += debug_toolbar_urls()
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
-if "rosetta" in settings.INSTALLED_APPS:
+if apps.is_installed("rosetta"):
     urlpatterns += [path("rosetta/", include("rosetta.urls"))]
-
-
-urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

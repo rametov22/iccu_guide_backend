@@ -1,23 +1,41 @@
-name: iccu_guide
+name: ${PROJECT_NAME:-iccu-guide}
 
 x-backend-defaults: &backend-defaults
   build:
     context: .
-    dockerfile: .docker/backend/Dockerfile
+    dockerfile: ./Dockerfile
   env_file:
-    - .env
+    - ./.env
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
   volumes:
     - django-static:/app/static
     - django-media:/app/media
+    - ./secrets:/app/secrets:ro
   depends_on:
+    volume-init:
+      condition: service_completed_successfully
     db:
       condition: service_healthy
     redis:
       condition: service_healthy
   restart: unless-stopped
 
-
 services:
+  volume-init:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    user: root
+    volumes:
+      - django-static:/app/static
+      - django-media:/app/media
+    command: sh -c "mkdir -p /app/static /app/media && chown -R 1000:1000 /app/static /app/media"
+    restart: "no"
+
   backend:
     <<: *backend-defaults
     expose:
@@ -26,7 +44,7 @@ services:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/healthcheck/ || exit 1"]
       interval: 30s
       retries: 5
-      start_period: 5s
+      start_period: 60s
       timeout: 3s
     command: bash scripts/entrypoint.sh
 
@@ -34,6 +52,12 @@ services:
     <<: *backend-defaults
     expose:
       - 8001
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/healthcheck/ || exit 1"]
+      interval: 30s
+      retries: 5
+      start_period: 30s
+      timeout: 3s
     command: bash scripts/entrypoint-asgi.sh
 
   db:
@@ -47,14 +71,15 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'" ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 3s
       retries: 5
       timeout: 3s
     restart: unless-stopped
-  
+
   redis:
     image: redis:8
+    command: redis-server --save 60 1 --appendonly yes --maxmemory 256mb --maxmemory-policy noeviction
     expose:
       - 6379
     volumes:
@@ -65,22 +90,24 @@ services:
       retries: 5
       timeout: 3s
     restart: unless-stopped
-  
+
   nginx:
     image: nginx:stable-alpine
     ports:
-      - "30312:80"
+      - "${APP_PORT:-30312}:80"
     volumes:
-      - ./.docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - django-static:/var/www/static
-      - django-media:/var/www/media
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - django-static:/var/www/static:ro
+      - django-media:/var/www/media:ro
     depends_on:
-      - backend
-      - backend-asgi
+      backend:
+        condition: service_healthy
+      backend-asgi:
+        condition: service_healthy
+    restart: unless-stopped
 
-  
 volumes:
   postgres-data:
-  django-static:
   redis-data:
+  django-static:
   django-media:

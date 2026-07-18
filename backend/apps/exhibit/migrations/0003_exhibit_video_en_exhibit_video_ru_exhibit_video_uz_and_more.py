@@ -7,9 +7,13 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('exhibit', '0002_hall_section_migrate_data'),
+        ('specialist', '0004_toursession_current_section'),
     ]
 
     operations = [
+        migrations.DeleteModel(
+            name='Location',
+        ),
         migrations.AddField(
             model_name='exhibit',
             name='video_en',

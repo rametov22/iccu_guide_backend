@@ -1,0 +1,16 @@
+.git
+.github
+.env
+.idea
+.pytest_cache
+.ruff_cache
+.venv
+backend/.venv
+backend/media
+backend/static
+db-backups
+dumps
+report.html
+secrets
+**/__pycache__
+**/*.pyc

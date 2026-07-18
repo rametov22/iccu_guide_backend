@@ -1,0 +1,83 @@
+[project]
+name = "iccu-ipad-tour"
+version = "0.1.0"
+description = "ICCU iPad Tour backend"
+requires-python = ">=3.13,<4"
+dependencies = [
+    "channels>=4.2.0,<5.0.0",
+    "channels-redis>=4.2.1,<5.0.0",
+    "django>=5.2.9,<6.0.0",
+    "django-cors-headers>=4.9.0,<5.0.0",
+    "django-modeltranslation>=0.19.17,<0.21.0",
+    "django-rosetta>=0.10.3,<0.11.0",
+    "django-structlog>=8.1.0,<10.0.0",
+    "djangorestframework>=3.16.1,<4.0.0",
+    "djangorestframework-simplejwt>=5.5.1,<6.0.0",
+    "drf-spectacular>=0.29.0,<0.30.0",
+    "drf-yasg>=1.21.11,<2.0.0",
+    "firebase-admin>=7.4.0,<8.0.0",
+    "gunicorn>=23.0.0,<24.0.0",
+    "martor>=1.7.16,<2.0.0",
+    "pillow>=12.1.1,<13.0.0",
+    "psycopg[binary]>=3.2.9,<4.0.0",
+    "python-decouple>=3.8,<4.0",
+    "redis>=7.3.0,<8.0.0",
+    "setproctitle>=1.3.6,<2.0.0",
+    "structlog>=24.1.0,<27.0.0",
+    "uvicorn[standard]>=0.34.0,<1.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "django-debug-toolbar>=6.0.0,<7.0.0",
+    "pre-commit>=4.0.0",
+    "pyright>=1.1.408",
+    "pytest>=8.4.1",
+    "pytest-django>=4.9.0",
+    "ruff>=0.8.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["tests.py", "test_*.py"]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "--no-migrations"
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+extend-exclude = ["**/migrations/**"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "C4", "SIM", "DJ", "RUF"]
+ignore = [
+    "DJ001",
+    "DJ007",
+    "DJ012",
+    "RUF001",
+    "RUF002",
+    "RUF003",
+    "RUF012",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/__init__.py" = ["F401", "F403", "F405"]
+"**/config/settings/*" = ["F401", "F403", "F405"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["config", "device", "exhibit", "guide", "specialist", "tour", "users"]
+section-order = [
+    "future",
+    "standard-library",
+    "django",
+    "third-party",
+    "first-party",
+    "local-folder",
+]
+
+[tool.ruff.lint.isort.sections]
+django = ["django"]

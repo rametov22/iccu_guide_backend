@@ -1,11 +1,11 @@
 {
     "name": "iccu-guide",
     "dockerComposeFile": [
-        "../../docker-compose.yml",
+        "../../docker-compose.dev.yml",
         "../docker-compose.yml"
     ],
     "service": "backend",
-    "workspaceFolder": "/app",
+    "workspaceFolder": "/app/backend",
     "customizations": {
         "vscode": {
             "extensions": [
@@ -13,19 +13,19 @@
                 "ms-python.vscode-pylance",
                 "streetsidesoftware.code-spell-checker",
                 "streetsidesoftware.code-spell-checker-russian",
-                "ms-python.black-formatter",
+                "charliermarsh.ruff",
                 "albert.TabOut",
                 "dzhavat.bracket-pair-toggler",
                 "ms-python.isort",
                 "Gruntfuggly.todo-tree"
             ],
             "settings": {
-                "python.defaultInterpreterPath": "/usr/local/bin/python",
-                "editor.defaultFormatter": "ms-python.black-formatter",
+                "python.defaultInterpreterPath": "/opt/venv/bin/python",
+                "editor.defaultFormatter": "charliermarsh.ruff",
                 "editor.formatOnSave": true,
                 "editor.formatOnPaste": false
             }
         }
     },
-    "postCreateCommand": "cat /etc/os-release"
+    "postCreateCommand": "cd /app/backend && python manage.py check"
 }
