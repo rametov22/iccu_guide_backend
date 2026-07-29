@@ -136,6 +136,14 @@ CHANNEL_LAYERS = {
     },
 }
 
+DEEP_HEALTH_API_KEY = config("DEEP_HEALTH_API_KEY", default="")
+DEEP_HEALTH_ASGI_URL = config(
+    "DEEP_HEALTH_ASGI_URL",
+    default="http://backend-asgi:8001/healthcheck/",
+)
+DEEP_HEALTH_DEADLINE_SECONDS = config("DEEP_HEALTH_DEADLINE_SECONDS", default=1.5, cast=float)
+DEEP_HEALTH_CLIENT_TIMEOUT_SECONDS = config("DEEP_HEALTH_CLIENT_TIMEOUT_SECONDS", default=1.0, cast=float)
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},

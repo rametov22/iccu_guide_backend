@@ -28,6 +28,7 @@ chmod 700 secrets
 ENVIRONMENT=prod
 BACKEND_IMAGE=ghcr.io/rametov22/iccu-guide-backend:sha-<full-commit-sha>
 FIREBASE_CREDENTIALS_PATH=/app/secrets/firebase-service-account.json
+DEEP_HEALTH_API_KEY=<output of openssl rand -hex 32>
 ```
 
 Авторизоваться и запустить пустой стек:
@@ -50,6 +51,9 @@ docker compose -f docker-compose.prod.yml up -d
 ```bash
 docker compose -f docker-compose.prod.yml ps
 curl -fsS http://127.0.0.1:${APP_PORT}/healthcheck/
+KEY='<same value as DEEP_HEALTH_API_KEY in .env>'
+curl -sS -H "X-API-Key: ${KEY}" https://api.guide.iccu.uz/deep-health/
+unset KEY
 docker compose -f docker-compose.prod.yml exec backend python manage.py check --deploy
 ```
 

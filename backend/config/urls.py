@@ -8,6 +8,8 @@ from django.urls import include, path
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import TemplateView
 
+from config.deep_health import deep_health
+
 APP_NAME = settings.APP_NAME
 
 __all__ = ("urlpatterns",)
@@ -29,6 +31,7 @@ urlpatterns = [
         lambda request: JsonResponse({"status": "ok"}),
         name="healthcheck",
     ),
+    path("deep-health/", deep_health, name="deep-health"),
     path("ws-test/", TemplateView.as_view(template_name="ws_test.html"), name="ws-test"),
     path("tourist/", TemplateView.as_view(template_name="tourist.html"), name="tourist"),
     path("martor/", include("martor.urls")),

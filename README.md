@@ -29,6 +29,27 @@ make dev run
 The REST/admin service is available at `http://localhost:${APP_PORT}`.
 WebSocket requests under `/ws/` are proxied to the ASGI container.
 
+## Health checks
+
+`/healthcheck/` is the shallow Docker healthcheck. `/deep-health/` is the
+protected monitoring endpoint and checks `backend`, `backend-asgi`, `db` and
+`redis` concurrently. Configure a separate random key in `.env`:
+
+```dotenv
+DEEP_HEALTH_API_KEY=<output of openssl rand -hex 32>
+```
+
+Call it through HTTPS in production:
+
+```bash
+KEY='<same value as DEEP_HEALTH_API_KEY in .env>'
+curl -sS -H "X-API-Key: ${KEY}" https://api.guide.iccu.uz/deep-health/
+unset KEY
+```
+
+Missing or invalid credentials return HTTP 401. An authorized request always
+returns HTTP 200; inspect the JSON `status` and individual `services` values.
+
 ## Commands
 
 ```bash
