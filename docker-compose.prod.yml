@@ -1,7 +1,7 @@
 name: ${PROJECT_NAME:-iccu-guide}
 
 x-backend-defaults: &backend-defaults
-  image: ${BACKEND_IMAGE:-ghcr.io/rametov22/iccu-guide-backend:latest}
+  image: ${BACKEND_IMAGE:-ghcr.io/rametov22/iccu-guide-backend:refactor-django-template}
   pull_policy: always
   env_file:
     - ./.env
@@ -25,7 +25,7 @@ x-backend-defaults: &backend-defaults
 
 services:
   volume-init:
-    image: ${BACKEND_IMAGE:-ghcr.io/rametov22/iccu-guide-backend:latest}
+    image: ${BACKEND_IMAGE:-ghcr.io/rametov22/iccu-guide-backend:refactor-django-template}
     pull_policy: always
     user: root
     volumes:

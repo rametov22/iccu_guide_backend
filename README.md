@@ -73,9 +73,11 @@ GitHub Actions publishes:
 
 ```text
 ghcr.io/rametov22/iccu-guide-backend:sha-<full-commit-sha>
+ghcr.io/rametov22/iccu-guide-backend:refactor-django-template
 ```
 
-Set that value as `BACKEND_IMAGE` on the server, authenticate with GHCR, then:
+Use the moving branch tag for routine deployments and keep SHA tags for an exact
+rollback. Set `BACKEND_IMAGE` once on the server, authenticate with GHCR, then:
 
 ```bash
 make prod deploy
